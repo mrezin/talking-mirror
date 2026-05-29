@@ -9,6 +9,8 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { signOut } from '../../src/services/firebase';
+import { useUserStore } from '../../src/store/userStore';
 
 type SettingsRow = {
   label: string;
@@ -24,11 +26,23 @@ export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(true);
   const [language, setLanguage] = useState('English');
   const [notifTime, setNotifTime] = useState('8:00 AM');
+  const { user, role, setUser } = useUserStore();
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => {} },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            setUser(null);
+          } catch {
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
+          }
+        },
+      },
     ]);
   };
 
@@ -87,6 +101,29 @@ export default function SettingsScreen() {
 
         <Text style={styles.sectionTitle}>ACCOUNT</Text>
         <View style={styles.section}>
+          {user && !user.isAnonymous && (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Signed in as</Text>
+                <Text style={styles.rowValue} numberOfLines={1}>{user.email ?? 'Social account'}</Text>
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+          {user?.isAnonymous && (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Mode</Text>
+                <Text style={styles.rowValue}>Guest</Text>
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Role</Text>
+            <Text style={styles.rowValue}>{role.charAt(0).toUpperCase() + role.slice(1)}</Text>
+          </View>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.row}>
             <Text style={styles.rowLabel}>Manage Subscription</Text>
             <Text style={styles.rowValue}>›</Text>

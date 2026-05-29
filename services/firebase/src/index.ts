@@ -10,6 +10,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions } from 'firebase-functions/v2';
+import { beforeUserCreated } from 'firebase-functions/v2/identity';
+import type { UserDocument } from './types';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -98,6 +100,33 @@ export const getLuckyColor = onCall(
 // ─────────────────────────────────────────────────────────
 
 /**
+ * onAuthUserCreated
+ * Triggered when a new Firebase Auth user is created (any provider).
+ * Creates the `users/{userId}` Firestore document if it doesn't exist yet.
+ * This acts as a safety net alongside the client-side syncUserDoc logic.
+ */
+export const onAuthUserCreated = beforeUserCreated(async (event) => {
+  const user = event.data;
+  if (!user) return;
+
+  const isAnonymous = !user.email && !user.providerData?.length;
+  const role = isAnonymous ? 'guest' : 'free';
+
+  const userRef = db.collection('users').doc(user.uid);
+  const userSnap = await userRef.get();
+
+  if (!userSnap.exists) {
+    const userDoc: UserDocument = {
+      email: user.email ?? null,
+      role,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await userRef.set(userDoc);
+  }
+});
+
+/**
  * onUserCreated
  * Triggered when a new user document is created in Firestore.
  * Sets up default preferences.
@@ -112,6 +141,8 @@ export const onUserCreated = onDocumentCreated(
       language: 'en',
       notificationsEnabled: true,
       notificationTime: '08:00',
+      favorites: [],
+      cardHeightPct: 20,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
