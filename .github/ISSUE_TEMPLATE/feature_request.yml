@@ -1,0 +1,95 @@
+name: Feature Request
+description: Suggest an idea or improvement for TalkingMirror
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a new feature! Please fill out the form below as completely as possible.
+
+  - type: dropdown
+    id: feature_area
+    attributes:
+      label: Feature Area
+      description: Which area of the app does this feature relate to?
+      options:
+        - Mirror Screen
+        - Compliment / Affirmation Engine
+        - Lucky Color Advice
+        - Audio / TTS
+        - Compliment History
+        - Subscription / Paywall
+        - Notifications
+        - Onboarding
+        - Settings
+        - Admin Dashboard
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: A clear and concise description of the problem or pain point.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see.
+      placeholder: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: Any workarounds or other approaches you've tried or thought about.
+
+  - type: dropdown
+    id: user_tier
+    attributes:
+      label: Target User Tier
+      description: Which user tier would benefit most from this feature?
+      multiple: true
+      options:
+        - Guest
+        - Free Registered
+        - Premium Subscriber
+        - All Users
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iOS
+        - Android
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or screenshots about the feature request here.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: This feature aligns with the TalkingMirror mission (confidence & wellbeing)
+          required: true
