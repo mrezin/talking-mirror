@@ -17,6 +17,10 @@ function useAuthGuard() {
     const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
+        // Role defaults to 'guest' for anonymous users and 'free' for registered
+        // users. The Firestore user doc (synced in firebase.ts) is the source of
+        // truth for premium/admin roles — those are updated via RevenueCat webhooks
+        // or admin Cloud Functions and will be reflected on the next auth event.
         setRole(user.isAnonymous ? 'guest' : 'free');
       } else {
         setUser(null);

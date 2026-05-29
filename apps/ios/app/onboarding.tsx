@@ -16,6 +16,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import {
   signInAnonymously,
   signInWithEmail,
@@ -30,9 +31,12 @@ WebBrowser.maybeCompleteAuthSession();
 
 type AuthMode = 'landing' | 'signin' | 'signup';
 
-const GOOGLE_IOS_CLIENT_ID = 'YOUR_GOOGLE_IOS_CLIENT_ID';
-const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_GOOGLE_ANDROID_CLIENT_ID';
-const GOOGLE_WEB_CLIENT_ID = 'YOUR_GOOGLE_WEB_CLIENT_ID';
+const GOOGLE_IOS_CLIENT_ID =
+  (Constants.expoConfig?.extra?.googleIosClientId as string) ?? '';
+const GOOGLE_ANDROID_CLIENT_ID =
+  (Constants.expoConfig?.extra?.googleAndroidClientId as string) ?? '';
+const GOOGLE_WEB_CLIENT_ID =
+  (Constants.expoConfig?.extra?.googleWebClientId as string) ?? '';
 
 export default function OnboardingScreen() {
   const [mode, setMode] = useState<AuthMode>('landing');
@@ -108,9 +112,11 @@ export default function OnboardingScreen() {
   const handleAppleSignIn = async () => {
     setIsLoading(true);
     try {
-      const rawNonce = Array.from({ length: 32 }, () =>
-        Math.floor(Math.random() * 36).toString(36),
-      ).join('');
+      // Generate a cryptographically secure raw nonce
+      const rawNonceBytes = await Crypto.getRandomBytesAsync(32);
+      const rawNonce = Array.from(rawNonceBytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         rawNonce,
