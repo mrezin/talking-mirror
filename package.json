@@ -1,0 +1,39 @@
+{
+  "name": "talking-mirror",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TalkingMirror monorepo — daily selfie mirror app with compliments, affirmations & lucky colors",
+  "workspaces": [
+    "apps/ios",
+    "apps/android",
+    "services/firebase",
+    "services/revenuecat",
+    "packages/shared"
+  ],
+  "scripts": {
+    "ios": "yarn workspace @talking-mirror/ios start",
+    "android": "yarn workspace @talking-mirror/android start",
+    "build:ios": "yarn workspace @talking-mirror/ios eas:build:ios",
+    "build:android": "yarn workspace @talking-mirror/android eas:build:android",
+    "deploy:firebase": "yarn workspace @talking-mirror/firebase deploy",
+    "lint": "yarn workspaces run lint",
+    "test": "yarn workspaces run test",
+    "typecheck": "yarn workspaces run typecheck",
+    "clean": "yarn workspaces run clean"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "packageManager": "yarn@1.22.22"
+}
