@@ -1,0 +1,38 @@
+name: Firebase Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  typecheck:
+    name: Firebase Functions Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @talking-mirror/firebase typecheck
+
+  deploy:
+    name: Deploy to Firebase
+    runs-on: ubuntu-latest
+    needs: typecheck
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @talking-mirror/firebase build
+      - name: Deploy to Firebase
+        working-directory: services/firebase
+        run: npx firebase deploy --only functions,firestore --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
