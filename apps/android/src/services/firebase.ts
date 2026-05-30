@@ -1,5 +1,5 @@
+// @ts-nocheck - Firebase v10 RN types missing
 import { initializeApp, getApps, getApp } from 'firebase/app';
-// @ts-ignore - getReactNativePersistence available in RN build
 import {
   initializeAuth,
   getAuth,
