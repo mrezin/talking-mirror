@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-// @ts-expect-error - getReactNativePersistence is exported in RN build
+// @ts-ignore - getReactNativePersistence available in RN build
 import {
   initializeAuth,
   getAuth,
