@@ -14,7 +14,6 @@ import {
   onAuthStateChanged as _onAuthStateChanged,
   type User,
 } from 'firebase/auth';
-} from 'firebase/auth';
 import {
   getFirestore,
   doc,
