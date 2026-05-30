@@ -12,15 +12,6 @@ import {
 import { signOut } from '../../src/services/firebase';
 import { useUserStore } from '../../src/store/userStore';
 
-type SettingsRow = {
-  label: string;
-  type: 'toggle' | 'select' | 'button';
-  value?: boolean | string;
-  options?: string[];
-  onPress?: () => void;
-  destructive?: boolean;
-};
-
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);

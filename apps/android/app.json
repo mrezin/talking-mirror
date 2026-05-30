@@ -12,16 +12,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.talkingmirror.app",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSCameraUsageDescription": "TalkingMirror uses your camera for the selfie mirror experience.",
-        "NSMicrophoneUsageDescription": "TalkingMirror uses your microphone for audio compliments.",
-        "NSPhotoLibraryUsageDescription": "TalkingMirror saves your mirror photos to your library."
-      }
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -46,7 +36,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-apple-authentication",
       [
         "expo-camera",
         {

@@ -1,0 +1,16 @@
+{
+  "name": "@talking-mirror/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/types/index.ts",
+  "types": "src/types/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"No tests for shared package\" && exit 0",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
