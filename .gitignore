@@ -26,7 +26,7 @@ ios/build/
 .env.development.local
 .env.test.local
 .env.production.local
-.env.example
+# Note: .env.example files are committed on purpose as templates.
 
 # IDE
 .vscode/

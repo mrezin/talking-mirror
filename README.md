@@ -61,11 +61,51 @@ yarn install
 ```
 
 ### 2. Configure environment variables
+
+Each Expo app reads its Firebase config from environment variables at build
+time (via `app.config.js`), so **no secrets are committed to the repo**. Copy
+the example files and fill in the values:
+
 ```bash
 cp .env.example .env
+cp apps/ios/.env.example apps/ios/.env
+cp apps/android/.env.example apps/android/.env
 cp services/firebase/.env.example services/firebase/.env
-cp services/revenuecat/.env.example services/revenuecat/.env
 ```
+
+#### Required Firebase values
+
+Get these from **Firebase console → Project settings → General → Your apps →
+Web app** (register a Web app if one does not exist yet). They map to the
+`EXPO_PUBLIC_FIREBASE_*` variables in `apps/*/.env`:
+
+| Env var | Firebase console field |
+|---|---|
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | `apiKey` |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | `projectId` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | `appId` |
+
+Google Sign-In additionally needs OAuth client IDs from **Google Cloud console →
+APIs & Services → Credentials** (auto-created when you enable the Google provider
+in Firebase Auth):
+
+| Env var | Source |
+|---|---|
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Web OAuth 2.0 client ID |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | iOS OAuth 2.0 client ID |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Android OAuth 2.0 client ID |
+
+#### GitHub Secrets (CI/CD)
+
+The `firebase-deploy.yml` workflow deploys Functions & Firestore using a CI
+token. Add it under **repo → Settings → Secrets and variables → Actions**:
+
+| Secret | How to obtain |
+|---|---|
+| `FIREBASE_TOKEN` | Run `firebase login:ci` locally and paste the printed token |
 
 ### 3. Run the apps
 ```bash
