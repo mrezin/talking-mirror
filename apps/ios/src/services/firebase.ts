@@ -1,7 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+// @ts-expect-error - getReactNativePersistence is exported in RN build
 import {
   initializeAuth,
   getAuth,
+  getReactNativePersistence,
   signInAnonymously as _signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -12,7 +14,6 @@ import {
   onAuthStateChanged as _onAuthStateChanged,
   type User,
 } from 'firebase/auth';
-import { getReactNativePersistence } from 'firebase/auth/react-native';
 import {
   getFirestore,
   doc,
