@@ -3,6 +3,12 @@
 // version control. See .env.example for the required variables.
 module.exports = ({ config }) => ({
   ...config,
+  plugins: [
+    ...(config.plugins || []),
+    "expo-splash-screen",
+    "expo-status-bar",
+    "expo-web-browser"
+  ],
   extra: {
     ...config.extra,
     eas: {
