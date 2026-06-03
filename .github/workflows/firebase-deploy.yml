@@ -18,7 +18,7 @@ jobs:
           node-version: 22
           cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: yarn workspace @talking-mirror/firebase typecheck
+      - run: yarn --cwd services/firebase typecheck
 
   deploy:
     name: Deploy to Firebase
@@ -32,7 +32,7 @@ jobs:
           node-version: 22
           cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: yarn workspace @talking-mirror/firebase build
+      - run: yarn --cwd services/firebase build
       - name: Deploy to Firebase
         working-directory: services/firebase
         run: npx firebase deploy --only functions,firestore --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
