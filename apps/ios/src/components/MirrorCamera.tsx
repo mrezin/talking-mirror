@@ -32,17 +32,17 @@ export default function MirrorCamera({ cameraRef, blurIntensity = 20 }: MirrorCa
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   camera: {
     width,
     height,
   },
   blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   warmthOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255, 200, 150, 0.08)', // subtle warmth
   },
 });

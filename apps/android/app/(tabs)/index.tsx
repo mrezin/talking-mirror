@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
+  Dimensions,
 } from 'react-native';
 import { useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   permissionText: {
     color: '#fff',
