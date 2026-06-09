@@ -22,10 +22,13 @@ export interface UserDoc {
 export type ComplimentCategory = 'basic' | 'standard' | 'personalized' | 'seasonal';
 export type Language = 'en' | 'ru' | 'zh';
 
+export type ComplimentTier = 'free' | 'premium';
+
 export interface ComplimentDoc {
   text: string;
   category: ComplimentCategory;
   language: Language;
+  tier: ComplimentTier;
   audioUrl: string;
   createdAt: unknown;
   createdBy: string;

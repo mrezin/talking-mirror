@@ -45,21 +45,25 @@ export const getDailyCompliment = onCall(
       .collection('compliments')
       .where('language', '==', language)
       .where('tier', 'in', tier === 'premium' ? ['free', 'premium'] : ['free'])
-      .orderBy('createdAt', 'desc')
-      .limit(20)
       .get();
 
     if (snapshot.empty) {
       throw new HttpsError('not-found', 'No compliments available.');
     }
 
-    // Pick a random compliment
+    // Deterministic daily pick: dayOfYear % totalComplimentsCount
+    // This ensures every user sees the SAME compliment on the same day
     const docs = snapshot.docs;
-    const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - startOfYear.getTime();
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const index = dayOfYear % docs.length;
 
     return {
-      id: randomDoc.id,
-      ...randomDoc.data(),
+      id: docs[index].id,
+      ...docs[index].data(),
     };
   }
 );
