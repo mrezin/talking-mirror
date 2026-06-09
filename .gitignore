@@ -28,6 +28,9 @@ ios/build/
 .env.production.local
 # Note: .env.example files are committed on purpose as templates.
 
+# Firebase Admin SDK credentials (service account key)
+services/firebase/*-adminsdk.json
+
 # IDE
 .vscode/
 .idea/

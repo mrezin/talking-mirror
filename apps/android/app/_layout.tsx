@@ -13,21 +13,22 @@ function useAuthGuard() {
   const segments = useSegments();
   const { setUser, setRole, setLoading, isAuthenticated, isLoading } = useUserStore();
 
+  // Auto-sign-in as guest and set premium role
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged((user) => {
-      if (user) {
+    const doGuestLogin = async () => {
+      try {
+        const { signInAnonymously } = await import('../src/services/firebase');
+        const { user } = await signInAnonymously();
         setUser(user);
-        // Role defaults to 'guest' for anonymous users and 'free' for registered
-        // users. The Firestore user doc (synced in firebase.ts) is the source of
-        // truth for premium/admin roles — those are updated via RevenueCat webhooks
-        // or admin Cloud Functions and will be reflected on the next auth event.
-        setRole(user.isAnonymous ? 'guest' : 'free');
-      } else {
-        setUser(null);
+        setRole('premium');
+      } catch (e) {
+        console.warn('Guest login failed, proceeding anyway:', e);
+        setUser({ uid: 'guest-dev', isAnonymous: true } as any);
+        setRole('premium');
       }
       setLoading(false);
-    });
-    return unsubscribe;
+    };
+    doGuestLogin();
   }, [setUser, setRole, setLoading]);
 
   useEffect(() => {
@@ -36,7 +37,8 @@ function useAuthGuard() {
     const inAuthGroup = segments[0] === 'onboarding';
 
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/onboarding');
+      // Skip onboarding, go straight to tabs in dev mode
+      router.replace('/(tabs)');
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
     }

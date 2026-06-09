@@ -1,16 +1,15 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { CameraView } from 'expo-camera';
-import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 
 interface MirrorCameraProps {
   cameraRef: React.RefObject<any>;
-  blurIntensity?: number; // iOS ~20, Android ~15
+  blurIntensity?: number; // kept for backwards compat
 }
 
-export default function MirrorCamera({ cameraRef, blurIntensity = 20 }: MirrorCameraProps) {
+export default function MirrorCamera({ cameraRef }: MirrorCameraProps) {
   return (
     <View style={styles.container}>
       <CameraView
@@ -19,12 +18,7 @@ export default function MirrorCamera({ cameraRef, blurIntensity = 20 }: MirrorCa
         facing="front"
         mirror
       />
-      {/* Beauty filter overlay: subtle blur + warmth tint */}
-      <BlurView
-        intensity={blurIntensity}
-        tint="light"
-        style={styles.blurOverlay}
-      />
+      {/* Warmth tint overlay for a subtle glow effect */}
       <View style={styles.warmthOverlay} />
     </View>
   );
@@ -38,11 +32,8 @@ const styles = StyleSheet.create({
     width,
     height,
   },
-  blurOverlay: {
-    ...StyleSheet.absoluteFill,
-  },
   warmthOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255, 200, 150, 0.08)', // subtle warmth
+    backgroundColor: 'rgba(255, 200, 150, 0.08)',
   },
 });
