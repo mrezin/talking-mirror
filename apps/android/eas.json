@@ -15,10 +15,34 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "cache": {
+        "key": "android-v1",
+        "paths": [
+          "~/.gradle/caches",
+          "~/.gradle/wrapper"
+        ]
+      },
+      "env": {
+        "SENTRY_ORG": "bright-software",
+        "SENTRY_PROJECT": "talking-mirror",
+        "SENTRY_AUTH_TOKEN": "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"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "cache": {
+        "key": "android-v1",
+        "paths": [
+          "~/.gradle/caches",
+          "~/.gradle/wrapper"
+        ]
+      },
+      "env": {
+        "SENTRY_ORG": "bright-software",
+        "SENTRY_PROJECT": "talking-mirror",
+        "SENTRY_AUTH_TOKEN": "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"
+      }
     }
   },
   "submit": {
