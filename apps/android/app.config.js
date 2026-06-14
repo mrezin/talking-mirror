@@ -7,7 +7,16 @@ module.exports = ({ config }) => ({
     ...(config.plugins || []),
     "expo-splash-screen",
     "expo-status-bar",
-    "expo-web-browser"
+    "expo-web-browser",
+    ['@sentry/react-native/expo', {}],
+    ['expo-build-properties', {
+      android: {
+        kotlinVersion: '2.1.0',
+        gradleProperties: {
+          'reactNativeArchitectures': 'arm64-v8a,armeabi-v7a'
+        }
+      }
+    }]
   ],
   extra: {
     ...config.extra,
