@@ -12,9 +12,7 @@ module.exports = ({ config }) => ({
     ['expo-build-properties', {
       android: {
         kotlinVersion: '2.1.20',
-        gradleProperties: {
-          'reactNativeArchitectures': 'arm64-v8a,armeabi-v7a'
-        }
+        buildArchs: ['arm64-v8a', 'armeabi-v7a']
       }
     }]
   ],
