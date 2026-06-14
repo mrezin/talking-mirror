@@ -60,6 +60,10 @@
     "react-native-worklets-core": "^1.6.3",
     "zustand": "^5.0.14"
   },
+  "overrides": {
+    "react-native-worklets": "$react-native-worklets",
+    "react-native-reanimated": "$react-native-reanimated"
+  },
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@types/react": "~19.2.14",
