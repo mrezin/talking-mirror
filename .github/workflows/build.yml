@@ -1,0 +1,53 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_ORG: bright-software
+      SENTRY_PROJECT: talking-mirror
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 ndk;27.1.12297006 platform-tools'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild Expo
+        working-directory: apps/android
+        run: npx expo prebuild --platform android --clean
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Build APK
+        working-directory: apps/android/android
+        run: ./gradlew assembleRelease --no-daemon -Dorg.gradle.parallel=false
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: talking-mirror-release
+          path: apps/android/android/app/build/outputs/apk/release/app-release.apk
