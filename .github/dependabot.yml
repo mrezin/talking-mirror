@@ -12,6 +12,11 @@ updates:
     labels:
       - "dependencies"
       - "security"
+    ignore:
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-worklets"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
@@ -29,6 +34,8 @@ updates:
       - "dependencies"
       - "security"
     ignore:
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
       - dependency-name: "react-native-reanimated"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "react-native-worklets"
@@ -46,6 +53,8 @@ updates:
       - "dependencies"
       - "security"
     ignore:
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
       - dependency-name: "react-native-reanimated"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "react-native-worklets"
