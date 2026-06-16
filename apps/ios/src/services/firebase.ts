@@ -154,6 +154,20 @@ export async function signOut(): Promise<void> {
   await _signOut(getAuthInstance());
 }
 
+/** Save user profile (zodiac sign + daily focus) to Firestore userPreferences. */
+export async function saveUserProfile(
+  uid: string,
+  zodiacSign: string,
+  dailyFocus: string,
+): Promise<void> {
+  const prefsRef = doc(db, 'userPreferences', uid);
+  await setDoc(
+    prefsRef,
+    { zodiacSign, dailyFocus },
+    { merge: true },
+  );
+}
+
 /**
  * Subscribe to Firebase auth state changes.
  * Returns an unsubscribe function.

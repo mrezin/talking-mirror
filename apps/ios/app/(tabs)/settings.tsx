@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { signOut } from '../../src/services/firebase';
-import { useUserStore } from '../../src/store/userStore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signOut, db } from '../../src/services/firebase';
+import { useUserStore, ZODIAC_SIGNS } from '@talking-mirror/shared';
+import type { ZodiacSign, DailyFocus } from '@talking-mirror/shared';
 
 type SettingsRow = {
   label: string;
@@ -21,12 +23,62 @@ type SettingsRow = {
   destructive?: boolean;
 };
 
+const FOCUS_OPTIONS: { key: DailyFocus; label: string }[] = [
+  { key: 'career', label: 'Career 💼' },
+  { key: 'love', label: 'Love ❤️' },
+  { key: 'balance', label: 'Balance 🧘' },
+];
+
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [language, setLanguage] = useState('English');
   const [notifTime, setNotifTime] = useState('8:00 AM');
+  const [{ zodiacSign, dailyFocus }, setProfile] = useState<{
+    zodiacSign: ZodiacSign | null;
+    dailyFocus: DailyFocus | null;
+  }>({ zodiacSign: null, dailyFocus: null });
   const { user, role, setUser } = useUserStore();
+
+  // Load user preferences for profile display
+  useEffect(() => {
+    if (!user?.uid) return;
+    getDoc(doc(db, 'userPreferences', user.uid)).then((snap) => {
+      const data = snap.data();
+      setProfile({
+        zodiacSign: (data?.zodiacSign as ZodiacSign) ?? null,
+        dailyFocus: (data?.dailyFocus as DailyFocus) ?? null,
+      });
+    }).catch(() => {});
+  }, [user?.uid]);
+
+  const handleChangeZodiac = () => {
+    Alert.alert('Choose Zodiac Sign', undefined, [
+      ...ZODIAC_SIGNS.map((sign) => ({
+        text: sign,
+        onPress: async () => {
+          if (!user?.uid) return;
+          await setDoc(doc(db, 'userPreferences', user.uid), { zodiacSign: sign }, { merge: true });
+          setProfile((p) => ({ ...p, zodiacSign: sign }));
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
+
+  const handleChangeFocus = () => {
+    Alert.alert('Choose Your Focus', undefined, [
+      ...FOCUS_OPTIONS.map(({ key, label }) => ({
+        text: label,
+        onPress: async () => {
+          if (!user?.uid) return;
+          await setDoc(doc(db, 'userPreferences', user.uid), { dailyFocus: key }, { merge: true });
+          setProfile((p) => ({ ...p, dailyFocus: key }));
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -96,6 +148,21 @@ export default function SettingsScreen() {
           <TouchableOpacity style={styles.row}>
             <Text style={styles.rowLabel}>Language</Text>
             <Text style={styles.rowValue}>{language} ›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>PROFILE</Text>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.row} onPress={handleChangeZodiac}>
+            <Text style={styles.rowLabel}>Zodiac Sign</Text>
+            <Text style={styles.rowValue}>{zodiacSign ?? 'Not set'} ›</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={handleChangeFocus}>
+            <Text style={styles.rowLabel}>Daily Focus</Text>
+            <Text style={styles.rowValue}>
+              {dailyFocus ? FOCUS_OPTIONS.find((f) => f.key === dailyFocus)?.label : 'Not set'} ›
+            </Text>
           </TouchableOpacity>
         </View>
 

@@ -6,20 +6,14 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
-  Dimensions,
 } from 'react-native';
 import { useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
-import MirrorCamera from '../../src/components/MirrorCamera';
-import ComplimentCard from '../../src/components/ComplimentCard';
-import { useCompliment } from '../../src/hooks/useCompliment';
-import { useColorAdvice } from '../../src/hooks/useColorAdvice';
-
-const { width, height } = Dimensions.get('window');
+import BeautyCameraScreen from '../../src/screens/BeautyCameraScreen';
+import { ComplimentCard, useCompliment, useColorAdvice } from '@talking-mirror/shared';
 
 export default function MirrorScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
   const { compliment, loading: complimentLoading } = useCompliment();
   const { color: colorAdvice, loading: colorLoading } = useColorAdvice();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -56,26 +50,19 @@ export default function MirrorScreen() {
     );
   }
 
-  if (!showContent) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <MirrorCamera cameraRef={cameraRef} blurIntensity={20} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <MirrorCamera cameraRef={cameraRef} blurIntensity={20} />
-      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        <ComplimentCard
-          compliment={compliment}
-          colorAdvice={colorAdvice}
-          loading={complimentLoading || colorLoading}
-        />
-      </Animated.View>
+      <BeautyCameraScreen />
+      {showContent && (
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+          <ComplimentCard
+            compliment={compliment}
+            colorAdvice={colorAdvice}
+            loading={complimentLoading || colorLoading}
+          />
+        </Animated.View>
+      )}
     </View>
   );
 }

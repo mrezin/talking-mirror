@@ -10,7 +10,7 @@ import {
 } from 'react-native-vision-camera';
 import { Skia } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
-import { createBeautyEffect } from '../shaders/beautyShader';
+import { createBeautyEffect } from '@talking-mirror/shared';
 
 interface BeautyCameraViewProps {
   blurIntensity: ISharedValue<number>; // 0.0 – 1.0

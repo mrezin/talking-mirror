@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { signOut } from '../../src/services/firebase';
-import { useUserStore } from '../../src/store/userStore';
+import { useUserStore } from '@talking-mirror/shared';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);

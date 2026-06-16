@@ -12,6 +12,9 @@ export type ComplimentCategory = 'basic' | 'standard' | 'personalized' | 'season
 export type ColorCategory = 'generic' | 'basic' | 'advanced';
 export type SubscriptionPlan = 'weekly' | 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'expired' | 'canceled';
+export type ZodiacSign = 'Aries' | 'Taurus' | 'Gemini' | 'Cancer' | 'Leo' | 'Virgo' | 'Libra' | 'Scorpio' | 'Sagittarius' | 'Capricorn' | 'Aquarius' | 'Pisces';
+export type DailyFocus = 'career' | 'love' | 'balance';
+export type DayVibe = 'active' | 'calm' | 'protective';
 
 // ─────────────────────────────────────────────────────────
 // Firestore Document Types (server-side, using admin.firestore.Timestamp)
@@ -34,6 +37,8 @@ export interface UserPreferencesDocument {
   cardHeightPct: number;
   notificationsEnabled: boolean;
   fcmToken?: string;
+  zodiacSign?: ZodiacSign;
+  dailyFocus?: DailyFocus;
   createdAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
 }
 
@@ -73,4 +78,14 @@ export interface SubscriptionDocument {
   endDate: admin.firestore.Timestamp | admin.firestore.FieldValue;
   renewalDate: admin.firestore.Timestamp | admin.firestore.FieldValue;
   trialEndsAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
+}
+
+export interface DailyImpulseDocument {
+  date: string; // 'YYYY-MM-DD'
+  zodiacSign: ZodiacSign | 'all';
+  focus: DailyFocus | 'all';
+  text: string;
+  audioUrl: string; // empty for MVP
+  dayVibe: DayVibe;
+  createdAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
 }
