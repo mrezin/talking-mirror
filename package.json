@@ -11,15 +11,15 @@
     "packages/shared"
   ],
   "scripts": {
-    "ios": "yarn workspace @talking-mirror/ios start",
-    "android": "yarn workspace @talking-mirror/android start",
-    "build:ios": "yarn workspace @talking-mirror/ios eas:build:ios",
-    "build:android": "yarn workspace @talking-mirror/android eas:build:android",
-    "deploy:firebase": "yarn workspace @talking-mirror/firebase deploy",
-    "lint": "yarn workspaces run lint",
-    "test": "yarn workspaces run test",
-    "typecheck": "yarn workspaces run typecheck",
-    "clean": "yarn workspaces run clean"
+    "ios": "npm -w @talking-mirror/ios run start",
+    "android": "npm -w @talking-mirror/android run start",
+    "build:ios": "npm -w @talking-mirror/ios run eas:build:ios",
+    "build:android": "npm -w @talking-mirror/android run eas:build:android",
+    "deploy:firebase": "npm -w @talking-mirror/firebase run deploy",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present"
   },
   "overrides": {
     "react": "19.2.3",
