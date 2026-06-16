@@ -43,17 +43,21 @@ const firebaseConfig = {
 // Prevent duplicate initialization on hot reload
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Use React Native persistence so auth state survives app restarts
-export const auth = (() => {
+// Lazy auth initialization — avoids "Component auth has not been registered yet"
+// race when the eager IIFE calls getAuth() before @firebase/auth registers.
+let _authInstance: ReturnType<typeof getAuth> | null = null;
+function getAuthInstance() {
+  if (_authInstance) return _authInstance;
   try {
-    return initializeAuth(app, {
+    _authInstance = initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
   } catch {
     // initializeAuth throws if auth has already been initialized
-    return getAuth(app);
+    _authInstance = getAuth(app);
   }
-})();
+  return _authInstance;
+}
 
 export const db = getFirestore(app);
 
@@ -92,7 +96,7 @@ async function syncUserDoc(user: User): Promise<UserRole> {
 
 /** Sign in anonymously (Guest mode). */
 export async function signInAnonymously(): Promise<{ user: User; role: UserRole }> {
-  const { user } = await _signInAnonymously(auth);
+  const { user } = await _signInAnonymously(getAuthInstance());
   const role = await syncUserDoc(user);
   return { user, role };
 }
@@ -102,7 +106,7 @@ export async function signInWithEmail(
   email: string,
   password: string,
 ): Promise<{ user: User; role: UserRole }> {
-  const { user } = await signInWithEmailAndPassword(auth, email, password);
+  const { user } = await signInWithEmailAndPassword(getAuthInstance(), email, password);
   const role = await syncUserDoc(user);
   return { user, role };
 }
@@ -112,7 +116,7 @@ export async function signUpWithEmail(
   email: string,
   password: string,
 ): Promise<{ user: User; role: UserRole }> {
-  const { user } = await createUserWithEmailAndPassword(auth, email, password);
+  const { user } = await createUserWithEmailAndPassword(getAuthInstance(), email, password);
   const role = await syncUserDoc(user);
   return { user, role };
 }
@@ -125,7 +129,7 @@ export async function signInWithGoogle(
   idToken: string,
 ): Promise<{ user: User; role: UserRole }> {
   const credential = GoogleAuthProvider.credential(idToken);
-  const { user } = await signInWithCredential(auth, credential);
+  const { user } = await signInWithCredential(getAuthInstance(), credential);
   const role = await syncUserDoc(user);
   return { user, role };
 }
@@ -140,14 +144,14 @@ export async function signInWithApple(
 ): Promise<{ user: User; role: UserRole }> {
   const provider = new OAuthProvider('apple.com');
   const credential = provider.credential({ idToken: identityToken, rawNonce });
-  const { user } = await signInWithCredential(auth, credential);
+  const { user } = await signInWithCredential(getAuthInstance(), credential);
   const role = await syncUserDoc(user);
   return { user, role };
 }
 
 /** Sign out the current user. */
 export async function signOut(): Promise<void> {
-  await _signOut(auth);
+  await _signOut(getAuthInstance());
 }
 
 /**
@@ -157,5 +161,5 @@ export async function signOut(): Promise<void> {
 export function onAuthStateChanged(
   callback: (user: User | null) => void,
 ): () => void {
-  return _onAuthStateChanged(auth, callback);
+  return _onAuthStateChanged(getAuthInstance(), callback);
 }
