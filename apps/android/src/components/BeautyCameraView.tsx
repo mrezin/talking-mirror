@@ -93,7 +93,7 @@ export default function BeautyCameraView({
       {/* Native frame renderer — displays Skia-processed frames */}
       <NativeFrameRendererView
         style={StyleSheet.absoluteFill}
-        frameRenderer={frameRenderer}
+        renderer={frameRenderer}
       />
     </View>
   );

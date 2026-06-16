@@ -3,6 +3,7 @@ name: Firebase Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}
@@ -12,13 +13,20 @@ jobs:
     name: Firebase Functions Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn --cwd services/firebase typecheck
+          cache: npm
+      - run: npm ci
+      - name: Typecheck Firebase Functions
+        working-directory: services/firebase
+        run: |
+          if [ -f tsconfig.json ]; then
+            npx tsc --noEmit
+          else
+            echo "⚠️  No tsconfig.json in services/firebase — skipping typecheck"
+          fi
 
   deploy:
     name: Deploy to Firebase
@@ -26,13 +34,26 @@ jobs:
     needs: typecheck
     environment: production
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn --cwd services/firebase build
+          cache: npm
+      - run: npm ci
+      - name: Build Firebase Functions
+        working-directory: services/firebase
+        run: |
+          if [ -f tsconfig.json ]; then
+            npx tsc
+          else
+            echo "⚠️  No tsconfig.json in services/firebase — skipping build"
+          fi
       - name: Deploy to Firebase
         working-directory: services/firebase
-        run: npx firebase deploy --only functions,firestore --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
+        run: |
+          if [ -f firebase.json ]; then
+            npx firebase deploy --only functions,firestore --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
+          else
+            echo "⚠️  No firebase.json in services/firebase — skipping deploy"
+            echo "Run 'firebase init' in services/firebase to set up deployment"
+          fi

@@ -15,25 +15,25 @@ jobs:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn workspaces run typecheck
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
 
   expo-prebuild:
     name: Expo Prebuild iOS
     runs-on: macos-latest
     needs: lint-and-typecheck
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - run: yarn install --frozen-lockfile
+          cache: npm
+      - run: npm ci
       - name: Expo prebuild iOS
         working-directory: apps/ios
         run: npx expo prebuild --platform ios --no-install
@@ -43,12 +43,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - run: yarn install --frozen-lockfile
+          cache: npm
+      - run: npm ci
       - name: Install EAS CLI
         run: npm install -g eas-cli
       - name: EAS build dry-run iOS
