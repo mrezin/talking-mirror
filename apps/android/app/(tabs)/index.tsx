@@ -1,81 +1,92 @@
-import React, { useRef, useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  SafeAreaView,
-  TouchableOpacity,
-  Text,
-  Dimensions,
-} from 'react-native';
-import { useCameraPermissions } from 'expo-camera';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import MirrorCamera from '../../src/components/MirrorCamera';
-import ComplimentCard from '../../src/components/ComplimentCard';
-import { useCompliment } from '../../src/hooks/useCompliment';
-import { useColorAdvice } from '../../src/hooks/useColorAdvice';
-
-const { width, height } = Dimensions.get('window');
+import Slider from '@react-native-community/slider';
+import { useSharedValue } from 'react-native-worklets-core';
+import BeautyCameraView from '../../src/components/BeautyCameraView';
+import { ComplimentCard, useCompliment, useColorAdvice } from '@talking-mirror/shared';
 
 export default function MirrorScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
   const { compliment, loading: complimentLoading } = useCompliment();
   const { color: colorAdvice, loading: colorLoading } = useColorAdvice();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showContent, setShowContent] = useState(false);
 
+  // Beauty filter shared values (worklet-backed for Skia shader)
+  const blurIntensity = useSharedValue(0.5);
+  const brightness = useSharedValue(1.15);
+
   // Dissolve transition on load
   useEffect(() => {
-    if (permission?.granted) {
-      setTimeout(() => {
-        setShowContent(true);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }).start();
-      }, 300);
-    }
-  }, [permission?.granted, fadeAnim]);
-
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.permissionText}>
-          TalkingMirror needs camera access to show your selfie mirror.
-        </Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant Camera Access</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  if (!showContent) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <MirrorCamera cameraRef={cameraRef} blurIntensity={15} />
-      </View>
-    );
-  }
+    setTimeout(() => {
+      setShowContent(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
+    }, 300);
+  }, [fadeAnim]);
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <MirrorCamera cameraRef={cameraRef} blurIntensity={15} />
-      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        <ComplimentCard
-          compliment={compliment}
-          colorAdvice={colorAdvice}
-          loading={complimentLoading || colorLoading}
-        />
-      </Animated.View>
+
+      {/* Beauty camera with Skia shader — handles its own VisionCamera permission */}
+      <BeautyCameraView
+        blurIntensity={blurIntensity}
+        brightness={brightness}
+      />
+
+      {showContent && (
+        <>
+          {/* Compliment card overlay */}
+          <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+            <ComplimentCard
+              compliment={compliment}
+              colorAdvice={colorAdvice}
+              loading={complimentLoading || colorLoading}
+            />
+          </Animated.View>
+
+          {/* Bottom slider panel */}
+          <Animated.View style={[styles.panel, { opacity: fadeAnim }]}>
+            <View style={styles.sliderRow}>
+              <Text style={styles.label}>Smooth</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.01}
+                value={0.5}
+                onValueChange={(v: number) => {
+                  blurIntensity.value = v;
+                }}
+                minimumTrackTintColor="#9b59b6"
+                maximumTrackTintColor="#3d3d5e"
+                thumbTintColor="#9b59b6"
+              />
+            </View>
+
+            <View style={styles.sliderRow}>
+              <Text style={styles.label}>Glow</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={1.0}
+                maximumValue={1.4}
+                step={0.01}
+                value={1.15}
+                onValueChange={(v: number) => {
+                  brightness.value = v;
+                }}
+                minimumTrackTintColor="#9b59b6"
+                maximumTrackTintColor="#3d3d5e"
+                thumbTintColor="#9b59b6"
+              />
+            </View>
+          </Animated.View>
+        </>
+      )}
     </View>
   );
 }
@@ -88,22 +99,31 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFill,
   },
-  permissionText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-    marginHorizontal: 32,
-    marginBottom: 24,
+  panel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(26, 26, 46, 0.85)',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  button: {
-    backgroundColor: '#9b59b6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  buttonText: {
+  label: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+    width: 60,
+  },
+  slider: {
+    flex: 1,
+    height: 40,
   },
 });

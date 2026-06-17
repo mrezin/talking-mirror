@@ -55,6 +55,29 @@ export interface ColorAdviceDoc {
 
 export type Theme = 'light' | 'dark' | 'custom';
 
+// ─────────────────────────────────────────────────────────
+// User Profile Types
+// ─────────────────────────────────────────────────────────
+
+export const ZODIAC_SIGNS = [
+  'Aries',
+  'Taurus',
+  'Gemini',
+  'Cancer',
+  'Leo',
+  'Virgo',
+  'Libra',
+  'Scorpio',
+  'Sagittarius',
+  'Capricorn',
+  'Aquarius',
+  'Pisces',
+] as const;
+
+export type ZodiacSign = (typeof ZODIAC_SIGNS)[number];
+
+export type DailyFocus = 'career' | 'love' | 'balance';
+
 export interface UserPreferencesDoc {
   language: Language;
   notificationTime: string; // 'HH:MM'
@@ -63,6 +86,8 @@ export interface UserPreferencesDoc {
   cardHeightPct: number; // 15-30
   notificationsEnabled: boolean;
   fcmToken?: string;
+  zodiacSign?: ZodiacSign;
+  dailyFocus?: DailyFocus;
   createdAt: unknown;
 }
 
@@ -93,4 +118,20 @@ export interface SubscriptionDoc {
   endDate: unknown;
   renewalDate: unknown;
   trialEndsAt: unknown;
+}
+
+// ─────────────────────────────────────────────────────────
+// Daily Impulse Types
+// ─────────────────────────────────────────────────────────
+
+export type DayVibe = 'active' | 'calm' | 'protective';
+
+export interface DailyImpulseDoc {
+  date: string; // 'YYYY-MM-DD'
+  zodiacSign: ZodiacSign | 'all';
+  focus: DailyFocus | 'all';
+  text: string;
+  audioUrl: string; // empty string for MVP
+  dayVibe: DayVibe;
+  createdAt: unknown;
 }

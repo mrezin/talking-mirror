@@ -24,7 +24,7 @@ import {
   signInWithGoogle,
   signInWithApple,
 } from '../src/services/firebase';
-import { useUserStore } from '../src/store/userStore';
+import { useUserStore } from '@talking-mirror/shared';
 
 // Required for expo-auth-session to handle the OAuth redirect
 WebBrowser.maybeCompleteAuthSession();

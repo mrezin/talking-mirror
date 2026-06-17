@@ -25,7 +25,8 @@ setGlobalOptions({ region: 'us-central1' });
 
 /**
  * getDailyCompliment
- * Returns a personalized (or standard) compliment for the requesting user.
+ * Returns a contextual daily impulse, personalized by zodiac sign, focus, and timezone.
+ * Falls back to legacy `compliments` collection if no dailyImpulses match.
  */
 export const getDailyCompliment = onCall(
   { cors: true },
@@ -35,12 +36,97 @@ export const getDailyCompliment = onCall(
       throw new HttpsError('unauthenticated', 'Must be authenticated.');
     }
 
+    const {
+      zodiacSign,
+      focus,
+      timezone,
+    } = request.data as {
+      zodiacSign?: string;
+      focus?: string;
+      timezone?: string;
+    };
+
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data();
     const tier = userData?.subscriptionTier ?? 'free';
     const language = userData?.language ?? 'en';
 
-    // Fetch compliment based on tier
+    // Calculate today's date in the user's timezone
+    const now = new Date();
+    let today: string;
+    try {
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: timezone || 'UTC',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      };
+      const parts = new Intl.DateTimeFormat('en-CA', options).format(now);
+      today = parts; // 'YYYY-MM-DD' in en-CA locale
+    } catch {
+      today = now.toISOString().split('T')[0];
+    }
+
+    // Try dailyImpulses collection first (contextual impulse for this user)
+    if (zodiacSign && focus) {
+      // Exact match: zodiac + focus
+      let snapshot = await db
+        .collection('dailyImpulses')
+        .where('date', '==', today)
+        .where('zodiacSign', '==', zodiacSign)
+        .where('focus', '==', focus)
+        .limit(1)
+        .get();
+
+      // Fallback: zodiac + 'all' focus
+      if (snapshot.empty) {
+        snapshot = await db
+          .collection('dailyImpulses')
+          .where('date', '==', today)
+          .where('zodiacSign', '==', zodiacSign)
+          .where('focus', '==', 'all')
+          .limit(1)
+          .get();
+      }
+
+      // Fallback: 'all' zodiac + focus
+      if (snapshot.empty) {
+        snapshot = await db
+          .collection('dailyImpulses')
+          .where('date', '==', today)
+          .where('zodiacSign', '==', 'all')
+          .where('focus', '==', focus)
+          .limit(1)
+          .get();
+      }
+
+      // Fallback: 'all' zodiac + 'all' focus
+      if (snapshot.empty) {
+        snapshot = await db
+          .collection('dailyImpulses')
+          .where('date', '==', today)
+          .where('zodiacSign', '==', 'all')
+          .where('focus', '==', 'all')
+          .limit(1)
+          .get();
+      }
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return {
+          id: doc.id,
+          text: doc.data().text,
+          category: 'personalized',
+          language,
+          tier: 'free',
+          audioUrl: doc.data().audioUrl || '',
+          createdAt: doc.data().createdAt || null,
+          createdBy: 'system',
+        };
+      }
+    }
+
+    // Legacy fallback: compliments collection
     const snapshot = await db
       .collection('compliments')
       .where('language', '==', language)
@@ -48,14 +134,11 @@ export const getDailyCompliment = onCall(
       .get();
 
     if (snapshot.empty) {
-      throw new HttpsError('not-found', 'No compliments available.');
+      throw new HttpsError('not-found', 'No daily impulse available.');
     }
 
-    // Deterministic daily pick: dayOfYear % totalComplimentsCount
-    // This ensures every user sees the SAME compliment on the same day
     const docs = snapshot.docs;
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const startOfYear = new Date(now.getUTCFullYear(), 0, 0);
     const diff = now.getTime() - startOfYear.getTime();
     const oneDay = 1000 * 60 * 60 * 24;
     const dayOfYear = Math.floor(diff / oneDay);

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { User } from '../services/firebase';
-import type { UserRole } from '../services/firebase';
+import type { User } from 'firebase/auth';
+import type { UserRole } from '@talking-mirror/shared';
 
 interface UserState {
   /** Current Firebase Auth user, or null if signed out. */
