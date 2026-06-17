@@ -135,3 +135,35 @@ export interface DailyImpulseDoc {
   dayVibe: DayVibe;
   createdAt: unknown;
 }
+
+// ─────────────────────────────────────────────────────────
+// Streak Types
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Time-of-day context for adaptive UI.
+ * - morning:  05:00–11:59 — full ritual
+ * - day:      12:00–17:59 — day reset
+ * - evening:  18:00–04:59 — evening detox
+ */
+export type TimeContext = 'morning' | 'day' | 'evening';
+
+/** Streak state surfaced to the UI. */
+export interface StreakState {
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: string;
+  graceDaysUsed: number;
+  timeContext: TimeContext;
+  isGraceDay: boolean;
+}
+
+/** Persisted streak fields stored in userPreferences / AsyncStorage. */
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: string;
+  graceDaysUsed: number;
+  /** Consecutive active days since last grace day — resets graceDaysUsed at 7. */
+  activeDaysSinceGrace: number;
+}

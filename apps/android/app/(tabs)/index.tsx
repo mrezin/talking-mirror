@@ -4,11 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import Slider from '@react-native-community/slider';
 import { useSharedValue } from 'react-native-worklets-core';
 import BeautyCameraView from '../../src/components/BeautyCameraView';
-import { ComplimentCard, useCompliment, useColorAdvice } from '@talking-mirror/shared';
+import { ComplimentCard, useCompliment, useColorAdvice, useStreak, StreakPill, TimeContextBadge } from '@talking-mirror/shared';
 
 export default function MirrorScreen() {
   const { compliment, loading: complimentLoading } = useCompliment();
   const { color: colorAdvice, loading: colorLoading } = useColorAdvice();
+  const { streak, graceMessage, contextMeta } = useStreak();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showContent, setShowContent] = useState(false);
 
@@ -40,12 +41,23 @@ export default function MirrorScreen() {
 
       {showContent && (
         <>
+          {/* Time-of-day badge */}
+          <TimeContextBadge
+            timeContext={streak.timeContext}
+            greeting={contextMeta.greeting}
+          />
+
+          {/* Streak pill */}
+          <StreakPill streak={streak} graceMessage={graceMessage} />
+
           {/* Compliment card overlay */}
           <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
             <ComplimentCard
               compliment={compliment}
               colorAdvice={colorAdvice}
               loading={complimentLoading || colorLoading}
+              timeContext={streak.timeContext}
+              graceMessage={graceMessage}
             />
           </Animated.View>
 
