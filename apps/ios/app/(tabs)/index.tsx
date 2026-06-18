@@ -10,12 +10,13 @@ import {
 import { useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import BeautyCameraScreen from '../../src/screens/BeautyCameraScreen';
-import { ComplimentCard, useCompliment, useColorAdvice } from '@talking-mirror/shared';
+import { ComplimentCard, useCompliment, useColorAdvice, useStreak, StreakPill, TimeContextBadge } from '@talking-mirror/shared';
 
 export default function MirrorScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const { compliment, loading: complimentLoading } = useCompliment();
   const { color: colorAdvice, loading: colorLoading } = useColorAdvice();
+  const { streak, graceMessage, contextMeta } = useStreak();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showContent, setShowContent] = useState(false);
 
@@ -55,13 +56,26 @@ export default function MirrorScreen() {
       <StatusBar style="light" />
       <BeautyCameraScreen />
       {showContent && (
-        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-          <ComplimentCard
-            compliment={compliment}
-            colorAdvice={colorAdvice}
-            loading={complimentLoading || colorLoading}
+        <>
+          {/* Time-of-day badge */}
+          <TimeContextBadge
+            timeContext={streak.timeContext}
+            greeting={contextMeta.greeting}
           />
-        </Animated.View>
+
+          {/* Streak pill */}
+          <StreakPill streak={streak} graceMessage={graceMessage} />
+
+          <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+            <ComplimentCard
+              compliment={compliment}
+              colorAdvice={colorAdvice}
+              loading={complimentLoading || colorLoading}
+              timeContext={streak.timeContext}
+              graceMessage={graceMessage}
+            />
+          </Animated.View>
+        </>
       )}
     </View>
   );
