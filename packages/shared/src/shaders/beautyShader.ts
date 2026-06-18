@@ -27,11 +27,16 @@ half4 main(float2 coord) {
     r = 1;
   }
 
+  // Use compile-time constant loop bounds — runtime variable loop
+  // initializers are not portable across all SkSL implementations.
+  const int MAX_R = 10;
+
   half4 sum = half4(0.0);
   float weightSum = 0.0;
 
-  for (int dy = -r; dy <= r; dy++) {
-    for (int dx = -r; dx <= r; dx++) {
+  for (int dy = -MAX_R; dy <= MAX_R; dy++) {
+    for (int dx = -MAX_R; dx <= MAX_R; dx++) {
+      if (dx < -r || dx > r || dy < -r || dy > r) continue;
       float2 offset = float2(float(dx), float(dy));
       float w = exp(-dot(offset, offset) / (2.0 * sigma * sigma));
       sum += image.eval(coord + offset) * half4(w);
