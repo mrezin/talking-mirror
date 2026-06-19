@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
   useCameraDevice,
+  useCameraDevices,
   useCameraPermission,
   useFrameOutput,
   useFrameRenderer,
@@ -23,6 +24,10 @@ export default function BeautyCameraView({
 }: BeautyCameraViewProps) {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
+  const allDevices = useCameraDevices();
+  // Track whether we're still waiting for camera enumeration after permission grant
+  const [showLoading, setShowLoading] = useState(false);
+  const retryCount = useRef(0);
 
   // Compile Skia shader once — never inside worklet
   const effect = useMemo(() => createBeautyEffect(), []);
@@ -57,6 +62,33 @@ export default function BeautyCameraView({
     },
   });
 
+  // When permission is granted but no front camera yet, retry with delay.
+  // Camera device enumeration on Android may take a moment after permission grant.
+  useEffect(() => {
+    if (hasPermission && !device && allDevices.length === 0) {
+      setShowLoading(true);
+      retryCount.current = 0;
+      const interval = setInterval(() => {
+        retryCount.current++;
+        // Force re-render by bumping state — useCameraDevices will refresh via syncExternalStore
+        setShowLoading(prev => prev);
+        if (retryCount.current >= 10) {
+          clearInterval(interval);
+          setShowLoading(false);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+    setShowLoading(false);
+  }, [hasPermission, device, allDevices.length]);
+
+  // Fallback: if 'front' is unavailable, try ANY camera on devices with a single camera
+  const fallbackDevice = useMemo(() => {
+    if (device) return device;
+    // If we have devices but no front-facing one, fall back to first available
+    return allDevices.length > 0 ? allDevices[0] : undefined;
+  }, [device, allDevices]);
+
   // Permission prompt
   if (!hasPermission) {
     return (
@@ -72,10 +104,10 @@ export default function BeautyCameraView({
     );
   }
 
-  if (!device) {
+  if (!fallbackDevice) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>No front camera found</Text>
+        <Text style={styles.permissionText}>{showLoading ? 'Searching for camera...' : 'No camera found'}</Text>
       </View>
     );
   }
@@ -85,7 +117,7 @@ export default function BeautyCameraView({
       {/* Camera preview — drives the frame output pipeline */}
       <Camera
         style={StyleSheet.absoluteFill}
-        device={device}
+        device={fallbackDevice}
         isActive
         outputs={[frameOutput]}
       />
