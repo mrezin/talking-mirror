@@ -36,7 +36,7 @@ function CameraRenderer({
   const frameRenderer = useFrameRenderer();
 
   const frameOutput = useFrameOutput({
-    pixelFormat: 'yuv',
+    pixelFormat: 'unknown', // avoid 'yuv' crashes on devices without YUV support
     onFrame: (frame) => {
       'worklet';
       const builder = Skia.RuntimeShaderBuilder(effect);
