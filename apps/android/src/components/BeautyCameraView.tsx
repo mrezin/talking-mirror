@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
+  type CameraDevice,
   useCameraDevice,
   useCameraDevices,
   useCameraPermission,
@@ -18,6 +19,55 @@ interface BeautyCameraViewProps {
   brightness: ISharedValue<number>; // 1.0 – 1.4
 }
 
+// ─── Camera renderer (only mounted when a device is available) ───
+
+interface CameraRendererProps {
+  blurIntensity: ISharedValue<number>;
+  brightness: ISharedValue<number>;
+  device: CameraDevice;
+}
+
+function CameraRenderer({
+  blurIntensity,
+  brightness,
+  device,
+}: CameraRendererProps) {
+  const effect = useMemo(() => createBeautyEffect(), []);
+  const frameRenderer = useFrameRenderer();
+
+  const frameOutput = useFrameOutput({
+    pixelFormat: 'unknown', // avoid 'yuv' crashes on devices without YUV support
+    onFrame: (frame) => {
+      'worklet';
+      const builder = Skia.RuntimeShaderBuilder(effect);
+      builder.setUniform('blurRadius', [blurIntensity.value]);
+      builder.setUniform('brightness', [brightness.value]);
+      const paint = Skia.Paint();
+      paint.setImageFilter(
+        Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
+      );
+      frameRenderer.renderFrame(frame);
+    },
+  });
+
+  return (
+    <View style={styles.container}>
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive
+        outputs={[frameOutput]}
+      />
+      <NativeFrameRendererView
+        style={StyleSheet.absoluteFill}
+        renderer={frameRenderer}
+      />
+    </View>
+  );
+}
+
+// ─── Main view — handles permission + device discovery ───
+
 export default function BeautyCameraView({
   blurIntensity,
   brightness,
@@ -25,42 +75,9 @@ export default function BeautyCameraView({
   const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
   const allDevices = useCameraDevices();
-  // Track whether we're still waiting for camera enumeration after permission grant
   const [showLoading, setShowLoading] = useState(false);
+  const [retryTrigger, setRetryTrigger] = useState(0);
   const retryCount = useRef(0);
-
-  // Compile Skia shader once — never inside worklet
-  const effect = useMemo(() => createBeautyEffect(), []);
-
-  // Frame renderer that renders processed frames to the view
-  const frameRenderer = useFrameRenderer();
-
-  // Frame output — receives camera frames on a worklet thread,
-  // applies Skia runtime shader, and renders via frameRenderer.
-  // pixelFormat: 'yuv' avoids unnecessary RGB conversion on Android.
-  const frameOutput = useFrameOutput({
-    pixelFormat: 'yuv',
-    onFrame: (frame) => {
-      'worklet';
-
-      // Build Skia runtime shader from the compiled effect
-      const builder = Skia.RuntimeShaderBuilder(effect);
-      builder.setUniform('blurRadius', [blurIntensity.value]);
-      builder.setUniform('brightness', [brightness.value]);
-
-      // Create paint with the runtime shader image filter
-      const paint = Skia.Paint();
-      paint.setImageFilter(
-        Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
-      );
-
-      // Render frame through the Skia-enhanced pipeline
-      frameRenderer.renderFrame(frame);
-
-      // The frame is automatically released by the pipeline after the
-      // onFrame callback returns. No explicit dispose needed in v5.
-    },
-  });
 
   // When permission is granted but no front camera yet, retry with delay.
   // Camera device enumeration on Android may take a moment after permission grant.
@@ -70,8 +87,8 @@ export default function BeautyCameraView({
       retryCount.current = 0;
       const interval = setInterval(() => {
         retryCount.current++;
-        // Force re-render by bumping state — useCameraDevices will refresh via syncExternalStore
-        setShowLoading(prev => prev);
+        // Force SyncExternalStore to refresh device list
+        setShowLoading(prev => true);
         if (retryCount.current >= 10) {
           clearInterval(interval);
           setShowLoading(false);
@@ -80,12 +97,11 @@ export default function BeautyCameraView({
       return () => clearInterval(interval);
     }
     setShowLoading(false);
-  }, [hasPermission, device, allDevices.length]);
+  }, [hasPermission, device, allDevices.length, retryTrigger]);
 
   // Fallback: if 'front' is unavailable, try ANY camera on devices with a single camera
   const fallbackDevice = useMemo(() => {
     if (device) return device;
-    // If we have devices but no front-facing one, fall back to first available
     return allDevices.length > 0 ? allDevices[0] : undefined;
   }, [device, allDevices]);
 
@@ -111,30 +127,35 @@ export default function BeautyCameraView({
     );
   }
 
+  // No device — show status, loop retry until one appears (or gives up)
   if (!fallbackDevice) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>{showLoading ? 'Searching for camera...' : 'No camera found'}</Text>
+        <Text style={styles.permissionText}>
+          {showLoading ? 'Searching for camera...' : 'No camera found'}
+        </Text>
+        {!showLoading && (
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={() => {
+              setRetryTrigger(c => c + 1);
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.permissionButtonText}>Retry</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
+  // Device available — mount camera renderer (hooks only run when device exists)
   return (
-    <View style={styles.container}>
-      {/* Camera preview — drives the frame output pipeline */}
-      <Camera
-        style={StyleSheet.absoluteFill}
-        device={fallbackDevice}
-        isActive
-        outputs={[frameOutput]}
-      />
-
-      {/* Native frame renderer — displays Skia-processed frames */}
-      <NativeFrameRendererView
-        style={StyleSheet.absoluteFill}
-        renderer={frameRenderer}
-      />
-    </View>
+    <CameraRenderer
+      blurIntensity={blurIntensity}
+      brightness={brightness}
+      device={fallbackDevice}
+    />
   );
 }
 
