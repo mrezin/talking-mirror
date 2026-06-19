@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
   useCameraDevice,
@@ -22,7 +22,7 @@ export default function BeautyCameraView({
   blurIntensity,
   brightness,
 }: BeautyCameraViewProps) {
-  const { hasPermission, requestPermission } = useCameraPermission();
+  const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
   const allDevices = useCameraDevices();
   // Track whether we're still waiting for camera enumeration after permission grant
@@ -93,12 +93,19 @@ export default function BeautyCameraView({
   if (!hasPermission) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>Camera access is required</Text>
+        <Text style={styles.permissionText}>
+          {canRequestPermission
+            ? 'Camera access is required'
+            : 'Camera permission was denied.\nGrant it in Settings to continue.'}
+        </Text>
         <TouchableOpacity
           style={styles.permissionButton}
-          onPress={requestPermission}
+          onPress={canRequestPermission ? requestPermission : () => Linking.openSettings()}
+          activeOpacity={canRequestPermission ? 0.7 : 1}
         >
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          <Text style={styles.permissionButtonText}>
+            {canRequestPermission ? 'Grant Permission' : 'Open Settings'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
