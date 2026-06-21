@@ -8,9 +8,9 @@ import {
   useCameraPermission,
   useFrameOutput,
 } from 'react-native-vision-camera';
-import { useSharedValue } from 'react-native-reanimated';
-import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
+import { Canvas, Image, Skia, type SkImage, useCanvasRef } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
+import { useSharedValue } from 'react-native-worklets-core';
 import { createBeautyEffect } from '@talking-mirror/shared';
 
 interface BeautyCameraViewProps {
@@ -34,11 +34,29 @@ function CameraRenderer({
   const effect = useMemo(() => createBeautyEffect(), []);
   const { width: winWidth, height: winHeight } = useWindowDimensions();
 
-  // Reanimated SharedValue holding the processed Skia image.
-  // Using Reanimated ensures the Skia Canvas reconciler subscribes
-  // to changes and auto-redraws (worklets-core SharedValues don't
-  // trigger Skia subscriptions).
+  // SharedValue holding the processed Skia image.
+  // Written from the VisionCamera worklet, read from the JS thread
+  // on each Canvas redraw. The Canvas redraw is triggered manually
+  // via requestAnimationFrame — SharedValues updated from a worklet
+  // thread don't auto-subscribe to Skia's reconciler.
   const processedFrame = useSharedValue<SkImage | null>(null);
+  const canvasRef = useCanvasRef();
+
+  // Poll the shared value and force Canvas redraw at display refresh rate.
+  // Without this, the Canvas would never know a new frame is ready.
+  useEffect(() => {
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      canvasRef.current?.redraw();
+      requestAnimationFrame(tick);
+    };
+    const raf = requestAnimationFrame(tick);
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [canvasRef]);
 
   const frameOutput = useFrameOutput({
     // Keep 'native' — we use frame.getNativeBuffer() which is a
@@ -83,6 +101,8 @@ function CameraRenderer({
         }
         const canvas = surface.getCanvas();
         canvas.drawImage(sourceImage, 0, 0, paint);
+        // Store result in shared value — the Canvas's RAF loop
+        // picks it up on the next redraw.
         processedFrame.value = surface.makeImageSnapshot();
 
         // 4. Free GPU resources immediately — don't wait for GC
@@ -102,9 +122,9 @@ function CameraRenderer({
         isActive
         outputs={[frameOutput]}
       />
-      {/* Skia Canvas overlay — auto-redraws via Reanimated
-          SharedValue subscription when processedFrame.value changes */}
-      <Canvas style={StyleSheet.absoluteFill}>
+      {/* Skia Canvas overlay — redraws every frame via RAF.
+          The Image component reads from the shared value each pass. */}
+      <Canvas ref={canvasRef} style={StyleSheet.absoluteFill}>
         <Image
           image={processedFrame}
           x={0}
