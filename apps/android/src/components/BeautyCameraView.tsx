@@ -49,8 +49,11 @@ function CameraRenderer({
     onFrame: (frame) => {
       'worklet';
       try {
-        // 1. Create a Skia Image from the GPU-side native buffer
-        //     — zero-copy, image stays on GPU
+        // 1. Verify the frame has a GPU native buffer before proceeding.
+        //     Some pixel formats / frame states don't provide one.
+        if (!frame.hasNativeBuffer) {
+          return;
+        }
         const nativeBuffer = frame.getNativeBuffer();
         const sourceImage = Skia.Image.MakeImageFromNativeBuffer(
           nativeBuffer,
@@ -75,14 +78,16 @@ function CameraRenderer({
           frame.height,
         );
         if (!surface) {
+          sourceImage.dispose();
           return;
         }
         const canvas = surface.getCanvas();
         canvas.drawImage(sourceImage, 0, 0, paint);
         processedFrame.value = surface.makeImageSnapshot();
 
-        // 4. Free the offscreen surface immediately
+        // 4. Free GPU resources immediately — don't wait for GC
         surface.dispose();
+        sourceImage.dispose();
       } finally {
         frame.dispose();
       }
