@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   Camera,
   type CameraDevice,
@@ -7,10 +7,9 @@ import {
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
-  useFrameRenderer,
-  NativeFrameRendererView,
 } from 'react-native-vision-camera';
-import { Skia } from '@shopify/react-native-skia';
+import { useSharedValue } from 'react-native-reanimated';
+import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
 import { createBeautyEffect } from '@talking-mirror/shared';
 
@@ -33,20 +32,65 @@ function CameraRenderer({
   device,
 }: CameraRendererProps) {
   const effect = useMemo(() => createBeautyEffect(), []);
-  const frameRenderer = useFrameRenderer();
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+
+  // Reanimated SharedValue holding the processed Skia image.
+  // Using Reanimated ensures the Skia Canvas reconciler subscribes
+  // to changes and auto-redraws (worklets-core SharedValues don't
+  // trigger Skia subscriptions).
+  const processedFrame = useSharedValue<SkImage | null>(null);
 
   const frameOutput = useFrameOutput({
-    pixelFormat: 'native', // use camera's native format, no conversion
+    // Keep 'native' — we use frame.getNativeBuffer() which is a
+    // GPU-side handle (AHardwareBuffer on Android, CVPixelBufferRef
+    // on iOS). Skia.Image.MakeImageFromNativeBuffer() consumes it
+    // directly without any CPU-side pixel copy.
+    pixelFormat: 'native',
     onFrame: (frame) => {
       'worklet';
-      const builder = Skia.RuntimeShaderBuilder(effect);
-      builder.setUniform('blurRadius', [blurIntensity.value]);
-      builder.setUniform('brightness', [brightness.value]);
-      const paint = Skia.Paint();
-      paint.setImageFilter(
-        Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
-      );
-      frameRenderer.renderFrame(frame);
+      try {
+        // 1. Verify the frame has a GPU native buffer before proceeding.
+        //     Some pixel formats / frame states don't provide one.
+        if (!frame.hasNativeBuffer) {
+          return;
+        }
+        const nativeBuffer = frame.getNativeBuffer();
+        const sourceImage = Skia.Image.MakeImageFromNativeBuffer(
+          nativeBuffer,
+        );
+        if (!sourceImage) {
+          return;
+        }
+
+        // 2. Build and apply the beauty runtime shader
+        const builder = Skia.RuntimeShaderBuilder(effect);
+        builder.setUniform('blurRadius', [blurIntensity.value]);
+        builder.setUniform('brightness', [brightness.value]);
+        const paint = Skia.Paint();
+        paint.setImageFilter(
+          Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
+        );
+
+        // 3. Render through the shader filter via an offscreen surface.
+        //     All operations stay GPU-side via JSI.
+        const surface = Skia.Surface.MakeOffscreen(
+          frame.width,
+          frame.height,
+        );
+        if (!surface) {
+          sourceImage.dispose();
+          return;
+        }
+        const canvas = surface.getCanvas();
+        canvas.drawImage(sourceImage, 0, 0, paint);
+        processedFrame.value = surface.makeImageSnapshot();
+
+        // 4. Free GPU resources immediately — don't wait for GC
+        surface.dispose();
+        sourceImage.dispose();
+      } finally {
+        frame.dispose();
+      }
     },
   });
 
@@ -58,10 +102,18 @@ function CameraRenderer({
         isActive
         outputs={[frameOutput]}
       />
-      <NativeFrameRendererView
-        style={StyleSheet.absoluteFill}
-        renderer={frameRenderer}
-      />
+      {/* Skia Canvas overlay — auto-redraws via Reanimated
+          SharedValue subscription when processedFrame.value changes */}
+      <Canvas style={StyleSheet.absoluteFill}>
+        <Image
+          image={processedFrame}
+          x={0}
+          y={0}
+          width={winWidth}
+          height={winHeight}
+          fit="cover"
+        />
+      </Canvas>
     </View>
   );
 }
