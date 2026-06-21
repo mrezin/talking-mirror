@@ -78,6 +78,9 @@ export default function BeautyCameraView({
   const [showLoading, setShowLoading] = useState(false);
   const [retryTrigger, setRetryTrigger] = useState(0);
   const retryCount = useRef(0);
+  // Tracks whether Android has permanently denied —
+  // VisionCamera may still report canRequestPermission=true
+  const [forceOpenSettings, setForceOpenSettings] = useState(false);
 
   // When permission is granted but no front camera yet, retry with delay.
   // Camera device enumeration on Android may take a moment after permission grant.
@@ -113,7 +116,14 @@ export default function BeautyCameraView({
   const handleRequestPermission = useCallback(async () => {
     try {
       if (Platform.OS === 'android') {
-        await PermissionsAndroid.request('android.permission.CAMERA');
+        const result = await PermissionsAndroid.request(
+          'android.permission.CAMERA',
+        );
+        if (result === 'never_ask_again') {
+          // Android won't show the dialog again — show Settings button
+          setForceOpenSettings(true);
+          return;
+        }
       }
       // Also call VisionCamera's API to update the hook's internal state
       await requestPermission();
@@ -124,20 +134,21 @@ export default function BeautyCameraView({
 
   // Permission prompt
   if (!hasPermission) {
+    const showSettings = forceOpenSettings || !canRequestPermission;
     return (
       <View style={styles.permissionContainer}>
         <Text style={styles.permissionText}>
-          {canRequestPermission
-            ? 'Camera access is required'
-            : 'Camera permission was denied.\nGrant it in Settings to continue.'}
+          {showSettings
+            ? 'Camera permission was denied.\nGrant it in Settings to continue.'
+            : 'Camera access is required'}
         </Text>
         <TouchableOpacity
           style={styles.permissionButton}
-          onPress={canRequestPermission ? handleRequestPermission : () => Linking.openSettings()}
-          activeOpacity={canRequestPermission ? 0.7 : 1}
+          onPress={showSettings ? () => Linking.openSettings() : handleRequestPermission}
+          activeOpacity={showSettings ? 1 : 0.7}
         >
           <Text style={styles.permissionButtonText}>
-            {canRequestPermission ? 'Grant Permission' : 'Open Settings'}
+            {showSettings ? 'Open Settings' : 'Grant Permission'}
           </Text>
         </TouchableOpacity>
       </View>
