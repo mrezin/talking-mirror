@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
   type CameraDevice,
@@ -105,6 +105,23 @@ export default function BeautyCameraView({
     return allDevices.length > 0 ? allDevices[0] : undefined;
   }, [device, allDevices]);
 
+  // Request camera permission.
+  // On Android we use PermissionsAndroid first — it reliably shows the
+  // native system dialog. VisionCamera's v5 Nitro-based requestPermission()
+  // may not trigger the dialog in all Expo/android configurations.
+  // The hook is still used for status tracking (hasPermission/canRequestPermission).
+  const handleRequestPermission = useCallback(async () => {
+    try {
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.request('android.permission.CAMERA');
+      }
+      // Also call VisionCamera's API to update the hook's internal state
+      await requestPermission();
+    } catch (error) {
+      console.warn('Camera permission request failed:', error);
+    }
+  }, [requestPermission]);
+
   // Permission prompt
   if (!hasPermission) {
     return (
@@ -116,7 +133,7 @@ export default function BeautyCameraView({
         </Text>
         <TouchableOpacity
           style={styles.permissionButton}
-          onPress={canRequestPermission ? requestPermission : () => Linking.openSettings()}
+          onPress={canRequestPermission ? handleRequestPermission : () => Linking.openSettings()}
           activeOpacity={canRequestPermission ? 0.7 : 1}
         >
           <Text style={styles.permissionButtonText}>

@@ -1,12 +1,14 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { useCameraPermission } from 'react-native-vision-camera';
 import { useSharedValue } from 'react-native-worklets-core';
 import BeautyCameraView from '../components/BeautyCameraView';
 
 export default function BeautyCameraScreen() {
   const blurIntensity = useSharedValue(0.5);
   const brightness = useSharedValue(1.15);
+  const { hasPermission } = useCameraPermission();
 
   return (
     <View style={styles.container}>
@@ -15,7 +17,8 @@ export default function BeautyCameraScreen() {
         brightness={brightness}
       />
 
-      {/* Bottom control panel */}
+      {/* Bottom control panel — only show when camera is active */}
+      {hasPermission && (
       <View style={styles.panel}>
         <View style={styles.sliderRow}>
           <Text style={styles.label}>Smooth</Text>
@@ -51,6 +54,7 @@ export default function BeautyCameraScreen() {
           />
         </View>
       </View>
+      )}
     </View>
   );
 }
