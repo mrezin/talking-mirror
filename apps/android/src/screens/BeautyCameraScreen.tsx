@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useCameraPermission } from 'react-native-vision-camera';
