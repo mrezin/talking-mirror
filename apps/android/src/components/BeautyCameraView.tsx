@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
   type CameraDevice,
@@ -7,12 +7,14 @@ import {
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
-  useFrameRenderer,
-  NativeFrameRendererView,
 } from 'react-native-vision-camera';
-import { Skia } from '@shopify/react-native-skia';
+import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
+import { useSharedValue } from 'react-native-worklets-core';
 import { createBeautyEffect } from '@talking-mirror/shared';
+
+// Screen dimensions for Skia Canvas overlay
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface BeautyCameraViewProps {
   blurIntensity: ISharedValue<number>; // 0.0 – 1.0
@@ -33,20 +35,58 @@ function CameraRenderer({
   device,
 }: CameraRendererProps) {
   const effect = useMemo(() => createBeautyEffect(), []);
-  const frameRenderer = useFrameRenderer();
+  // Shared value holding the processed Skia image.
+  // Updated every frame from the VisionCamera worklet.
+  const processedFrame = useSharedValue<SkImage | null>(null);
 
   const frameOutput = useFrameOutput({
-    pixelFormat: 'native', // use camera's native format, no conversion
+    // Use 'rgb' so the pixel data is in a format Skia can consume.
+    // 'native' may return YUV or vendor-private formats that Skia
+    // cannot directly create an Image from.
+    pixelFormat: 'rgb',
     onFrame: (frame) => {
       'worklet';
-      const builder = Skia.RuntimeShaderBuilder(effect);
-      builder.setUniform('blurRadius', [blurIntensity.value]);
-      builder.setUniform('brightness', [brightness.value]);
-      const paint = Skia.Paint();
-      paint.setImageFilter(
-        Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
-      );
-      frameRenderer.renderFrame(frame);
+      try {
+        // 1. Convert VisionCamera Frame → Skia Image
+        const pixelBuffer = frame.getPixelBuffer();
+        const data = Skia.Data.fromBytes(new Uint8Array(pixelBuffer));
+        const sourceImage = Skia.Image.MakeImage(
+          {
+            width: frame.width,
+            height: frame.height,
+            alphaType: 1 as unknown as 1,
+            colorType: 4 as unknown as 4,
+          },
+          data,
+          frame.bytesPerRow,
+        );
+        if (!sourceImage) {
+          return;
+        }
+
+        // 2. Apply beauty shader via RuntimeShaderBuilder
+        const builder = Skia.RuntimeShaderBuilder(effect);
+        builder.setUniform('blurRadius', [blurIntensity.value]);
+        builder.setUniform('brightness', [brightness.value]);
+        const paint = Skia.Paint();
+        paint.setImageFilter(
+          Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
+        );
+
+        // 3. Render through filter to an offscreen surface
+        const surface = Skia.Surface.MakeOffscreen(
+          frame.width,
+          frame.height,
+        );
+        if (!surface) {
+          return;
+        }
+        const canvas = surface.getCanvas();
+        canvas.drawImage(sourceImage, 0, 0, paint);
+        processedFrame.value = surface.makeImageSnapshot();
+      } finally {
+        frame.dispose();
+      }
     },
   });
 
@@ -58,10 +98,16 @@ function CameraRenderer({
         isActive
         outputs={[frameOutput]}
       />
-      <NativeFrameRendererView
-        style={StyleSheet.absoluteFill}
-        renderer={frameRenderer}
-      />
+      <Canvas style={StyleSheet.absoluteFill}>
+        <Image
+          image={processedFrame}
+          x={0}
+          y={0}
+          width={screenWidth}
+          height={screenHeight}
+          fit="cover"
+        />
+      </Canvas>
     </View>
   );
 }
