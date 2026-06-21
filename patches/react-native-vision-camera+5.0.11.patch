@@ -1,0 +1,38 @@
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/HybridFrameRenderer.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/HybridFrameRenderer.kt
+index 344ca9b..44ac43c 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/HybridFrameRenderer.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/HybridFrameRenderer.kt
+@@ -31,7 +31,15 @@ class HybridFrameRenderer :
+ 
+   override fun connectSurface(surface: Surface) {
+     disconnectSurface()
+-    imageWriter = ImageWriter.newInstance(surface, DEFAULT_QUEUE_DEPTH)
++    try {
++      imageWriter = ImageWriter.newInstance(surface, DEFAULT_QUEUE_DEPTH)
++    } catch (e: IllegalArgumentException) {
++      // Surface may have been released due to a race condition
++      // with SurfaceView lifecycle (e.g. React Fabric creating the view
++      // while the surface was already destroyed)
++      android.util.Log.w(Companion::class.java.simpleName, "Failed to connect surface (already released): ${e.message}")
++      imageWriter = null
++    }
+   }
+ 
+   override fun disconnectSurface() {
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/views/HybridFrameRendererView.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/views/HybridFrameRendererView.kt
+index 8d3270d..b8633a5 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/views/HybridFrameRendererView.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/views/HybridFrameRendererView.kt
+@@ -27,9 +27,10 @@ class HybridFrameRendererView(
+       oldRenderer?.disconnectSurface()
+ 
+       // Maybe connect new Renderer
+-      if (surfaceView.holder.surface != null) {
++      val surface = surfaceView.holder.surface
++      if (surface != null && surface.isValid) {
+         val newRenderer = value as? NativeFrameRenderer
+-        newRenderer?.connectSurface(surfaceView.holder.surface)
++        newRenderer?.connectSurface(surface)
+       }
+       field = value
+     }
