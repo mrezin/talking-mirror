@@ -8,9 +8,9 @@ import {
   useCameraPermission,
   useFrameOutput,
 } from 'react-native-vision-camera';
-import { useSharedValue } from 'react-native-reanimated';
 import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
+import { useRunOnJS } from 'react-native-worklets-core';
 import { createBeautyEffect } from '@talking-mirror/shared';
 
 interface BeautyCameraViewProps {
@@ -34,11 +34,16 @@ function CameraRenderer({
   const effect = useMemo(() => createBeautyEffect(), []);
   const { width: winWidth, height: winHeight } = useWindowDimensions();
 
-  // Reanimated SharedValue holding the processed Skia image.
-  // Using Reanimated ensures the Skia Canvas reconciler subscribes
-  // to changes and auto-redraws (worklets-core SharedValues don't
-  // trigger Skia subscriptions).
-  const processedFrame = useSharedValue<SkImage | null>(null);
+  // React state holding the processed Skia image.
+  // Updated from the VisionCamera worklet via useRunOnJS(), which
+  // hops back to the JS thread to call setState. React re-renders
+  // the Canvas children, causing the Skia reconciler to pick up
+  // the new image. SharedValues don't work here — they're written
+  // from a different JS runtime than the Skia reconciler runs on.
+  const [processedFrame, setProcessedFrame] = useState<SkImage | null>(null);
+  const setFrameOnJS = useRunOnJS((image: SkImage | null) => {
+    setProcessedFrame(image);
+  }, []);
 
   const frameOutput = useFrameOutput({
     // Keep 'native' — we use frame.getNativeBuffer() which is a
@@ -83,7 +88,8 @@ function CameraRenderer({
         }
         const canvas = surface.getCanvas();
         canvas.drawImage(sourceImage, 0, 0, paint);
-        processedFrame.value = surface.makeImageSnapshot();
+        // Hop to JS thread → React setState → Canvas re-renders
+        setFrameOnJS(surface.makeImageSnapshot());
 
         // 4. Free GPU resources immediately — don't wait for GC
         surface.dispose();
@@ -102,8 +108,8 @@ function CameraRenderer({
         isActive
         outputs={[frameOutput]}
       />
-      {/* Skia Canvas overlay — auto-redraws via Reanimated
-          SharedValue subscription when processedFrame.value changes */}
+      {/* Skia Canvas overlay — re-renders whenever React
+          state changes (triggered from worklet via useRunOnJS) */}
       <Canvas style={StyleSheet.absoluteFill}>
         <Image
           image={processedFrame}
