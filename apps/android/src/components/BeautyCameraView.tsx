@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   Camera,
   type CameraDevice,
@@ -8,13 +8,10 @@ import {
   useCameraPermission,
   useFrameOutput,
 } from 'react-native-vision-camera';
+import { useSharedValue } from 'react-native-reanimated';
 import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
 import type { ISharedValue } from 'react-native-worklets-core';
-import { useSharedValue } from 'react-native-worklets-core';
 import { createBeautyEffect } from '@talking-mirror/shared';
-
-// Screen dimensions for Skia Canvas overlay
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface BeautyCameraViewProps {
   blurIntensity: ISharedValue<number>; // 0.0 – 1.0
@@ -35,36 +32,34 @@ function CameraRenderer({
   device,
 }: CameraRendererProps) {
   const effect = useMemo(() => createBeautyEffect(), []);
-  // Shared value holding the processed Skia image.
-  // Updated every frame from the VisionCamera worklet.
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+
+  // Reanimated SharedValue holding the processed Skia image.
+  // Using Reanimated ensures the Skia Canvas reconciler subscribes
+  // to changes and auto-redraws (worklets-core SharedValues don't
+  // trigger Skia subscriptions).
   const processedFrame = useSharedValue<SkImage | null>(null);
 
   const frameOutput = useFrameOutput({
-    // Use 'rgb' so the pixel data is in a format Skia can consume.
-    // 'native' may return YUV or vendor-private formats that Skia
-    // cannot directly create an Image from.
-    pixelFormat: 'rgb',
+    // Keep 'native' — we use frame.getNativeBuffer() which is a
+    // GPU-side handle (AHardwareBuffer on Android, CVPixelBufferRef
+    // on iOS). Skia.Image.MakeImageFromNativeBuffer() consumes it
+    // directly without any CPU-side pixel copy.
+    pixelFormat: 'native',
     onFrame: (frame) => {
       'worklet';
       try {
-        // 1. Convert VisionCamera Frame → Skia Image
-        const pixelBuffer = frame.getPixelBuffer();
-        const data = Skia.Data.fromBytes(new Uint8Array(pixelBuffer));
-        const sourceImage = Skia.Image.MakeImage(
-          {
-            width: frame.width,
-            height: frame.height,
-            alphaType: 1 as unknown as 1,
-            colorType: 4 as unknown as 4,
-          },
-          data,
-          frame.bytesPerRow,
+        // 1. Create a Skia Image from the GPU-side native buffer
+        //     — zero-copy, image stays on GPU
+        const nativeBuffer = frame.getNativeBuffer();
+        const sourceImage = Skia.Image.MakeImageFromNativeBuffer(
+          nativeBuffer,
         );
         if (!sourceImage) {
           return;
         }
 
-        // 2. Apply beauty shader via RuntimeShaderBuilder
+        // 2. Build and apply the beauty runtime shader
         const builder = Skia.RuntimeShaderBuilder(effect);
         builder.setUniform('blurRadius', [blurIntensity.value]);
         builder.setUniform('brightness', [brightness.value]);
@@ -73,7 +68,8 @@ function CameraRenderer({
           Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
         );
 
-        // 3. Render through filter to an offscreen surface
+        // 3. Render through the shader filter via an offscreen surface.
+        //     All operations stay GPU-side via JSI.
         const surface = Skia.Surface.MakeOffscreen(
           frame.width,
           frame.height,
@@ -84,6 +80,9 @@ function CameraRenderer({
         const canvas = surface.getCanvas();
         canvas.drawImage(sourceImage, 0, 0, paint);
         processedFrame.value = surface.makeImageSnapshot();
+
+        // 4. Free the offscreen surface immediately
+        surface.dispose();
       } finally {
         frame.dispose();
       }
@@ -98,13 +97,15 @@ function CameraRenderer({
         isActive
         outputs={[frameOutput]}
       />
+      {/* Skia Canvas overlay — auto-redraws via Reanimated
+          SharedValue subscription when processedFrame.value changes */}
       <Canvas style={StyleSheet.absoluteFill}>
         <Image
           image={processedFrame}
           x={0}
           y={0}
-          width={screenWidth}
-          height={screenHeight}
+          width={winWidth}
+          height={winHeight}
           fit="cover"
         />
       </Canvas>
