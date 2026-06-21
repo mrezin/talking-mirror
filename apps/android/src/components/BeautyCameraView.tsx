@@ -109,26 +109,35 @@ export default function BeautyCameraView({
   }, [device, allDevices]);
 
   // Request camera permission.
-  // On Android we use PermissionsAndroid first — it reliably shows the
-  // native system dialog. VisionCamera's v5 Nitro-based requestPermission()
-  // may not trigger the dialog in all Expo/android configurations.
-  // The hook is still used for status tracking (hasPermission/canRequestPermission).
+  // On Android we use PermissionsAndroid — it reliably shows the native
+  // system dialog. VisionCamera's v5 Nitro-based requestPermission() does
+  // not trigger the dialog in Expo-managed Android workflows and is used
+  // ONLY to sync the hook's internal state after a grant.
   const handleRequestPermission = useCallback(async () => {
     try {
       if (Platform.OS === 'android') {
         const result = await PermissionsAndroid.request(
           'android.permission.CAMERA',
         );
-        if (result === 'never_ask_again') {
-          // Android won't show the dialog again — show Settings button
-          setForceOpenSettings(true);
+        if (result === PermissionsAndroid.RESULTS.GRANTED) {
+          // Dialog showed, user granted — sync VisionCamera hook state
+          await requestPermission();
           return;
         }
+        // DENIED or NEVER_ASK_AGAIN — either way the dialog is done.
+        // VisionCamera's requestPermission() won't show a dialog either,
+        // so surface the Settings fallback immediately.
+        setForceOpenSettings(true);
+        return;
       }
-      // Also call VisionCamera's API to update the hook's internal state
-      await requestPermission();
+      // iOS path — VisionCamera's requestPermission() handles the dialog
+      const granted = await requestPermission();
+      if (!granted) {
+        setForceOpenSettings(true);
+      }
     } catch (error) {
       console.warn('Camera permission request failed:', error);
+      setForceOpenSettings(true);
     }
   }, [requestPermission]);
 
