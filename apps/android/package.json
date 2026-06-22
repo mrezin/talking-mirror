@@ -23,7 +23,7 @@
     "@react-navigation/bottom-tabs": "^7.16.2",
     "@react-navigation/native": "^7.2.6",
     "@sentry/react-native": "~8.13.0",
-    "@shopify/react-native-skia": "2.6.2",
+    "@shopify/react-native-skia": "2.6.6",
     "@talking-mirror/shared": "*",
     "expo": "^56",
     "expo-auth-session": "~56.0.13",
