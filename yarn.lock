@@ -4757,7 +4757,7 @@ expo-file-system@~56.0.8:
   resolved "https://registry.npmjs.org/expo-file-system/-/expo-file-system-56.0.8.tgz"
   integrity sha512-NrH41/8snGIBSbYicwVLB4txPdgCATd7ZYhMAGS3YJZ9GbnduhlAoV4/YCbGayjrbpE9bJb/6wegPL/zmvRMnQ==
 
-expo-font@~56.0.5, expo-font@~56.0.7:
+expo-font@~56.0.7:
   version "56.0.7"
   resolved "https://registry.yarnpkg.com/expo-font/-/expo-font-56.0.7.tgz#429569724a3e811c289ef9d922e2115d8c5802bf"
   integrity sha512-hpU/vRwPzsby9lPGkA4blDqLIIXYzoWnCZHr6PxvcWbY/uPObAiyhh6q+e0WYsB65SthK+PLH95jEnVag7fwEg==
@@ -6124,7 +6124,7 @@ jest-environment-node@^29.7.0:
     jest-mock "^29.7.0"
     jest-util "^29.7.0"
 
-jest-expo@~56.0.5:
+jest-expo@~56.0.4:
   version "56.0.5"
   resolved "https://registry.yarnpkg.com/jest-expo/-/jest-expo-56.0.5.tgz#e97d1a038392f0ad88f938ec1e0bcffce0876dd1"
   integrity sha512-dlGKNy21OKFZ5ynNmKMS5eI1zzaNmOLvwX+rEt7PVXfPKuQ1VJLy6YOKZVCuh8vhSm27VGTa/HX3OjyGJ1FP1g==
