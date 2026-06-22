@@ -85,7 +85,7 @@ export default function BeautyCameraView({
             <Fill>
               <Shader
                 source={shader}
-                uniforms={{ blurRadius: smooth, brightness: glow }}
+                uniforms={{ blurRadius: smooth, brightness: glow, image: null } as any}
               >
                 <ImageShader image={skiaImage} fit="fill" />
               </Shader>
