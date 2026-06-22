@@ -30,6 +30,7 @@ export default function BeautyCameraScreen() {
             maximumTrackTintColor="#3d3d5e"
             thumbTintColor="#9b59b6"
           />
+          <Text style={styles.value}>{smooth.toFixed(2)}</Text>
         </View>
 
         <View style={styles.sliderRow}>
@@ -45,6 +46,7 @@ export default function BeautyCameraScreen() {
             maximumTrackTintColor="#3d3d5e"
             thumbTintColor="#9b59b6"
           />
+          <Text style={styles.value}>{glow.toFixed(2)}</Text>
         </View>
       </View>
     </View>
@@ -78,6 +80,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     width: 60,
+  },
+  value: {
+    color: '#9b59b6',
+    fontSize: 13,
+    fontWeight: '700',
+    width: 44,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
   slider: {
     flex: 1,

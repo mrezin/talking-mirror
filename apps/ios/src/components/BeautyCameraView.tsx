@@ -3,7 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { CameraView } from 'expo-camera';
 import {
   Canvas,
-  RuntimeShader,
+  Fill,
+  Shader,
+  ImageShader,
   useImage,
   Skia,
 } from '@shopify/react-native-skia';
@@ -80,20 +82,14 @@ export default function BeautyCameraView({
       <View style={styles.canvasOverlay} pointerEvents="none">
         <Canvas style={styles.canvas}>
           {skiaImage && shader && (
-            <RuntimeShader
-              source={shader}
-              uniforms={
-                {
-                  // SkImage is a valid shader-type uniform at runtime;
-                  // the TS definition omits it from the Uniform union.
-                  image: skiaImage,
-                  blurRadius: [smooth],
-                  brightness: [glow],
-                } as Record<string, unknown> as React.ComponentProps<
-                  typeof RuntimeShader
-                >['uniforms']
-              }
-            />
+            <Fill>
+              <Shader
+                source={shader}
+                uniforms={{ blurRadius: smooth, brightness: glow }}
+              >
+                <ImageShader image={skiaImage} fit="fill" />
+              </Shader>
+            </Fill>
           )}
         </Canvas>
       </View>
