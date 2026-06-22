@@ -4692,7 +4692,7 @@ expo-blur@~56.0.3:
   resolved "https://registry.npmjs.org/expo-blur/-/expo-blur-56.0.3.tgz"
   integrity sha512-KDDtrpWc2tYlm1WCPaOgBtv+YEGqe5ELheFPIgSNgHt28NQUDcfBcFsA9Us2StDh6osmSD6NbKxOt5bU6PcDbQ==
 
-expo-build-properties@^56.0.18:
+expo-build-properties@^56.0.19:
   version "56.0.19"
   resolved "https://registry.yarnpkg.com/expo-build-properties/-/expo-build-properties-56.0.19.tgz#705871cacc8aad4689ada1ad9ca8518a86357fe9"
   integrity sha512-InoviXcxWosNp4cC7L3SWoiY99Xr2HdgN+LYHb6mUm/BBVxy1mIMrZR+3PJ2gwDZzW6EJNDz8ioASWGHBTmzpA==
@@ -4701,7 +4701,7 @@ expo-build-properties@^56.0.18:
     resolve-from "^5.0.0"
     semver "^7.6.0"
 
-expo-camera@~56.0.8:
+expo-camera@~56.0.7:
   version "56.0.8"
   resolved "https://registry.yarnpkg.com/expo-camera/-/expo-camera-56.0.8.tgz#a7803265516a302a33d92b5bdea06bbe3b88380e"
   integrity sha512-UDOpUUMisFRmCv1XQV1MJCKGAH2CsIC1Rs6P9Bbc6JLVmbxEKAd5dK68y6cScOdWURxVfJ0PRcjYnSuc8ayyIQ==
