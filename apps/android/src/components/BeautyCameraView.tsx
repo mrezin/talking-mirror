@@ -43,10 +43,10 @@ export default function BeautyCameraView({
   const lastCaptureRef = useRef<number>(0);
   const capturingRef = useRef<boolean>(false);
 
-  // Periodic frame capture (~5 fps)
+  // Periodic frame capture (~2-3 fps for performance)
   const captureFrame = useCallback(async () => {
     const now = Date.now();
-    if (now - lastCaptureRef.current < 180) return;
+    if (now - lastCaptureRef.current < 350) return;
     if (capturingRef.current) return;
     capturingRef.current = true;
     lastCaptureRef.current = now;
@@ -54,9 +54,10 @@ export default function BeautyCameraView({
     try {
       const ref = cameraRef.current;
       if (!ref) return;
-      const image = await ref.takeSnapshot();
+      // Lower quality (20) for performance
+      const image = await ref.takeSnapshot({ quality: 20 });
       if (!image) return;
-      const path = await image.saveToTemporaryFileAsync('jpg', 25);
+      const path = await image.saveToTemporaryFileAsync('jpg', 20);
       if (path) {
         setFramePath(`file://${path}`);
       }
@@ -69,7 +70,7 @@ export default function BeautyCameraView({
 
   useEffect(() => {
     if (!device) return;
-    const interval = setInterval(captureFrame, 200);
+    const interval = setInterval(captureFrame, 350);
     return () => clearInterval(interval);
   }, [device, captureFrame]);
 
@@ -171,7 +172,7 @@ export default function BeautyCameraView({
                 source={shader}
                 uniforms={{ blurRadius: blurIntensity, brightness, image: null } as any}
               >
-                <ImageShader image={skiaImage} fit="fill" />
+                <ImageShader image={skiaImage} fit="contain" />
               </Shader>
             </Fill>
           )}

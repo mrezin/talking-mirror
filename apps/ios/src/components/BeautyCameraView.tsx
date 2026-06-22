@@ -31,18 +31,18 @@ export default function BeautyCameraView({
   const [base64Frame, setBase64Frame] = useState<string | null>(null);
   const lastCaptureRef = useRef<number>(0);
 
-  // Periodic frame capture (~5 fps for MVP)
+  // Periodic frame capture (~2-3 fps for performance)
   const captureFrame = useCallback(async () => {
     const now = Date.now();
     // Throttle to avoid overwhelming the camera API
-    if (now - lastCaptureRef.current < 180) return;
+    if (now - lastCaptureRef.current < 350) return;
     lastCaptureRef.current = now;
 
     try {
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
           base64: true,
-          quality: 0.25,
+          quality: 0.2,
           skipProcessing: true,
         });
         if (photo?.base64) {
@@ -55,7 +55,7 @@ export default function BeautyCameraView({
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(captureFrame, 200);
+    const interval = setInterval(captureFrame, 350);
     return () => clearInterval(interval);
   }, [captureFrame]);
 
@@ -87,7 +87,7 @@ export default function BeautyCameraView({
                 source={shader}
                 uniforms={{ blurRadius: smooth, brightness: glow, image: null } as any}
               >
-                <ImageShader image={skiaImage} fit="fill" />
+                <ImageShader image={skiaImage} fit="contain" />
               </Shader>
             </Fill>
           )}
