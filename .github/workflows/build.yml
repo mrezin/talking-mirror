@@ -18,7 +18,7 @@ jobs:
       SENTRY_ORG: bright-software
       SENTRY_PROJECT: talking-mirror
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Free disk space
         uses: jlumbroso/free-disk-space@main
