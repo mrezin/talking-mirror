@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Linking,
   PermissionsAndroid,
@@ -7,137 +7,28 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   Camera,
-  type CameraDevice,
+  type CameraRef,
   useCameraDevice,
   useCameraDevices,
   useCameraPermission,
-  useFrameOutput,
 } from 'react-native-vision-camera';
-import { Canvas, Image, Skia, type SkImage } from '@shopify/react-native-skia';
-import type { ISharedValue } from 'react-native-worklets-core';
-import { useSharedValue } from 'react-native-worklets-core';
-import { createBeautyEffect } from '@talking-mirror/shared';
+import {
+  Canvas,
+  Fill,
+  Shader,
+  ImageShader,
+  useImage,
+  Skia,
+} from '@shopify/react-native-skia';
+import { BEAUTY_SHADER_SRC } from '@talking-mirror/shared';
 
 interface BeautyCameraViewProps {
-  blurIntensity: ISharedValue<number>;
-  brightness: ISharedValue<number>;
+  blurIntensity: number;
+  brightness: number;
 }
-
-// ─── Camera renderer — beauty shader + Skia Canvas overlay ───
-
-interface CameraRendererProps {
-  blurIntensity: ISharedValue<number>;
-  brightness: ISharedValue<number>;
-  device: CameraDevice;
-}
-
-function CameraRenderer({
-  blurIntensity,
-  brightness,
-  device,
-}: CameraRendererProps) {
-  const effect = useMemo(() => createBeautyEffect(), []);
-  const { width: winWidth, height: winHeight } = useWindowDimensions();
-
-  // SharedValue for writing from VisionCamera worklet
-  const processedFrame = useSharedValue<SkImage | null>(null);
-
-  // React state for display — RAF loop polls the SV and calls setState.
-  // React re-render → Skia reconciler processes new <Image> → Canvas redraws.
-  const [displayFrame, setDisplayFrame] = useState<SkImage | null>(null);
-
-  // ── RAF poll: read shared value from JS thread, set React state ──
-  const lastFrameRef = useRef<SkImage | null>(null);
-  useEffect(() => {
-    let running = true;
-    const tick = () => {
-      if (!running) return;
-      const current = processedFrame.value;
-      if (current !== lastFrameRef.current) {
-        lastFrameRef.current = current;
-        setDisplayFrame(current);
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-    return () => {
-      running = false;
-    };
-  }, [processedFrame]);
-
-  // ── GPU pipeline: runs in VisionCamera's worklet thread ──
-  const frameOutput = useFrameOutput({
-    pixelFormat: 'native',
-    onFrame: (frame) => {
-      'worklet';
-      try {
-        if (!frame.hasNativeBuffer) {
-          return;
-        }
-        const sourceImage = Skia.Image.MakeImageFromNativeBuffer(
-          frame.getNativeBuffer(),
-        );
-        if (!sourceImage) {
-          return;
-        }
-
-        // Apply beauty shader
-        const builder = Skia.RuntimeShaderBuilder(effect);
-        builder.setUniform('blurRadius', [blurIntensity.value]);
-        builder.setUniform('brightness', [brightness.value]);
-        const paint = Skia.Paint();
-        paint.setImageFilter(
-          Skia.ImageFilter.MakeRuntimeShader(builder, null, null),
-        );
-
-        const surface = Skia.Surface.MakeOffscreen(
-          frame.width,
-          frame.height,
-        );
-        if (!surface) {
-          sourceImage.dispose();
-          return;
-        }
-        surface.getCanvas().drawImage(sourceImage, 0, 0, paint);
-        processedFrame.value = surface.makeImageSnapshot();
-
-        surface.dispose();
-        sourceImage.dispose();
-      } finally {
-        frame.dispose();
-      }
-    },
-  });
-
-  return (
-    <View style={styles.container}>
-      <Camera
-        style={StyleSheet.absoluteFill}
-        device={device}
-        isActive
-        outputs={[frameOutput]}
-      />
-      <Canvas style={StyleSheet.absoluteFill}>
-        {displayFrame && (
-          <Image
-            image={displayFrame}
-            x={0}
-            y={0}
-            width={winWidth}
-            height={winHeight}
-            fit="cover"
-          />
-        )}
-      </Canvas>
-    </View>
-  );
-}
-
-// ─── Main view — handles permission + device discovery ───
 
 export default function BeautyCameraView({
   blurIntensity,
@@ -147,7 +38,48 @@ export default function BeautyCameraView({
     useCameraPermission();
   const device = useCameraDevice('front');
   const allDevices = useCameraDevices();
+  const cameraRef = useRef<CameraRef>(null);
+  const [framePath, setFramePath] = useState<string | null>(null);
+  const lastCaptureRef = useRef<number>(0);
+  const capturingRef = useRef<boolean>(false);
 
+  // Periodic frame capture (~5 fps)
+  const captureFrame = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastCaptureRef.current < 180) return;
+    if (capturingRef.current) return;
+    capturingRef.current = true;
+    lastCaptureRef.current = now;
+
+    try {
+      const ref = cameraRef.current;
+      if (!ref) return;
+      const image = await ref.takeSnapshot();
+      if (!image) return;
+      const path = await image.saveToTemporaryFileAsync('jpg', 25);
+      if (path) {
+        setFramePath(`file://${path}`);
+      }
+    } catch {
+      // Silently skip failed captures
+    } finally {
+      capturingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!device) return;
+    const interval = setInterval(captureFrame, 200);
+    return () => clearInterval(interval);
+  }, [device, captureFrame]);
+
+  const skiaImage = useImage(framePath);
+  const shader = React.useMemo(
+    () => Skia.RuntimeEffect.Make(BEAUTY_SHADER_SRC),
+    [],
+  );
+
+  // Permission handling
   const handleRequestPermission = useCallback(async () => {
     try {
       if (Platform.OS === 'android') {
@@ -203,6 +135,7 @@ export default function BeautyCameraView({
     return (
       <View style={styles.container}>
         <Camera
+          ref={cameraRef}
           style={StyleSheet.absoluteFill}
           device={allDevices[0]}
           isActive
@@ -220,11 +153,31 @@ export default function BeautyCameraView({
   }
 
   return (
-    <CameraRenderer
-      blurIntensity={blurIntensity}
-      brightness={brightness}
-      device={device}
-    />
+    <View style={styles.container}>
+      {/* Live camera preview underneath */}
+      <Camera
+        ref={cameraRef}
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive
+      />
+
+      {/* Skia Canvas overlay — renders the beauty-filtered frame */}
+      <View style={styles.canvasOverlay} pointerEvents="none">
+        <Canvas style={styles.canvas}>
+          {skiaImage && shader && (
+            <Fill>
+              <Shader
+                source={shader}
+                uniforms={{ blurRadius: blurIntensity, brightness }}
+              >
+                <ImageShader image={skiaImage} fit="fill" />
+              </Shader>
+            </Fill>
+          )}
+        </Canvas>
+      </View>
+    </View>
   );
 }
 
@@ -254,5 +207,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  canvasOverlay: {
+    ...StyleSheet.absoluteFill,
+  },
+  canvas: {
+    flex: 1,
   },
 });

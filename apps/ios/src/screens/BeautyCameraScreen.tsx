@@ -82,10 +82,10 @@ const styles = StyleSheet.create({
     width: 60,
   },
   value: {
-    color: '#9b59b6',
-    fontSize: 13,
+    color: '#F8F8FF',
+    fontSize: 14,
     fontWeight: '700',
-    width: 44,
+    width: 48,
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
   },
