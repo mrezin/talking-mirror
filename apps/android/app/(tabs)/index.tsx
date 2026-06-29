@@ -41,8 +41,8 @@ export default function MirrorScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <BeautyCameraView
-        blurIntensity={blurIntensity}
-        brightness={brightness}
+        blurIntensity={smoothVal}
+        brightness={glowVal}
       />
 
       {/* Gear toggle — shows slider panel */}
@@ -83,6 +83,7 @@ export default function MirrorScreen() {
               maximumTrackTintColor="#3d3d5e"
               thumbTintColor="#9b59b6"
             />
+            <Text style={styles.value}>{smoothVal.toFixed(2)}</Text>
           </View>
 
           <View style={styles.sliderRow}>
@@ -101,6 +102,7 @@ export default function MirrorScreen() {
               maximumTrackTintColor="#3d3d5e"
               thumbTintColor="#9b59b6"
             />
+            <Text style={styles.value}>{glowVal.toFixed(2)}</Text>
           </View>
         </View>
       )}
@@ -182,6 +184,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     width: 60,
+  },
+  value: {
+    color: '#F8F8FF',
+    fontSize: 14,
+    fontWeight: '700',
+    width: 48,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
   slider: {
     flex: 1,
