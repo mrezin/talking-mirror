@@ -54,9 +54,9 @@ export default function BeautyCameraView({
     try {
       const ref = cameraRef.current;
       if (!ref) return;
-      // Lower quality (20) for performance
-      const image = await ref.takeSnapshot({ quality: 20 });
+      const image = await ref.takeSnapshot();
       if (!image) return;
+      // Lower quality (20) for performance
       const path = await image.saveToTemporaryFileAsync('jpg', 20);
       if (path) {
         setFramePath(`file://${path}`);
